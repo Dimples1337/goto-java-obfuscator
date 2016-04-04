@@ -1,0 +1,62 @@
+=== Goto Obfuscator ===
+Goto是免费开源的且永远是
+获取更新加入企鹅群: 340714894
+
+输入 java -jar GotoObfuscator.jar build <你的配置名称> 输出一个空的配置
+输入 java -jar GotoObfuscator.jar process <你的配置名称> 用这个配置进行混淆
+
+配置为Json
+
+插件介绍:
+在Goto运行目录中创建一个名为"GotoPlugins"的文件夹并将插件放入其中即可
+注: goto只会搜索后缀名为.jar的插件
+
+SkipClasses ExcludeClasses ClassRenameExclude的区别所在:
+SkipClasses是将类当作资源加载 并不会过asm 也不会过转换 保留原始的数据
+ExcludeClasses类会被加载 但是不被其他转换器处理 给Rename提供辅助作用 类似于Lib 但是ClassRename后会更改它的调用
+ClassRenameExclude类只在ClassRename被排除 其他转换器照常转换
+
+DynamicLibLoader和StaticLibLoader的区别
+DynamicLibLoader是动态加载 在需要获取类的时候才去从库中提取
+StaticLibLoader是静态加载 在开始的时候就已经将所有库的class提取完毕
+DynamicLibLoader比StaticLibLoader更快 但DynamicLibLoader是直接查找文件名称 遇到类名与文件名不一的会找不到
+
+以下是对象介绍
+InputFile -> 输入的jar文件, 例如 "input.jar" "obf/input.jar"
+OutputFile -> 输出的jar文件, 例如 "output.jar" "obf/output.jar"
+MainClass -> 主类 如为空将自动寻找主类 分隔符为 ".", 例如 "net.test.Main"
+Libraries -> 可填存放外部库的文件夹或它的名字 若填写文件夹会搜索文件夹下的文件当作lib 不是则直接当作lib,例如 "MyLibraries/" "MyLib.jar" 注: goto默认不加载Java库 需要手动添加
+ExtractZips -> 提取 zip or jar 到输出文件, 例如 "rt.jar" "MyLibrary.jar" "神秘图片.zip"
+SkipClasses -> 不加载哪一些类 这里使用 "startWith" 作为判断 分隔符为 "/", 例如 "net/" "net/Main"
+ExcludeClasses -> 加载哪一些但是不想被其他转换器转换的类 类似于lib 具体可看上面 这里使用 "startWith" 作为判断 分隔符为 "/", 例如 "net/" "net/Main"
+DictionaryOptions.CustomFile -> 自定义字典的文件路径 一行一词, 例如 "MyDictionaryFile.txt" "MyFolder/MyDictionaryFile.txt" "C:\\MyFolder\\MyDictionaryFile.txt"
+DictionaryOptions.Mode -> 字典模式 0是Alpha (a b c aa ab ac ba bb bc...) 1是Number (0 1 2 00 01 02...) 2是一些难以辨认的字符 3是自定义字典
+DictionaryOptions.RepeatTimeBase -> Unicode和Custom字典的起始重复字符串的次数 举个例子 若设为1 则是 a aa aaa , 若设为5 则是 aaaaa aaaaaa aaaaaaa 区间[1,+∞)
+StaticLibraryLoaderOptions.ThreadPoolSize -> 线程池的大小 (对于StaticLibLoader) 默认为5 区间[1,+∞)
+StaticLibraryLoaderOptions.MultiThreadLoadLibraries -> 使用多线程加载外部库 (对于StaticLibLoader) 默认开启
+LoadLibMode -> lib的加载模式 0为DynamicLibLoader 1为StaticLibLoader 区别请见上文
+PreVerify -> 使用Analyzer验证字节码的合法性 默认开启
+CorruptCRC -> 损坏crc
+CorruptDate -> 损坏日期
+ClassFolder -> 让类文件变成文件夹
+Packer -> 包装全体类进行加载 默认生成 "org/gotoobfuscator/runtime/GotoMain.class" 为加载器
+ConstantPacker -> 包装全部字符串与数字至 "Const" 文件 通过特定加载器获取
+ExtractorMode -> 把类当做资源处理 适用于只使用CorruptCRC CorruptDate Crasher...的人
+UseComputeMaxs -> 直接使用 COMPUTE_MAXS 来作为ClassWriter的参数
+ClassRename -> 重命名类与字段和方法 注: 不会更改反射
+ClassRename.PackageName -> ClassRename混淆后的类的基目录 可为空 例: "obfuscated" "apackage/obfuscated"
+ClassRename.Prefix -> 类名前缀
+ClassRename.Exclude -> ClassRename跳过哪一些类 这里使用 "startWith" 作为判断 分隔符为 "/", 例如 "net/" "net/Main"
+StringEncryptor -> 字符串加密
+HideCode -> 在反编译隐藏 使其不能生成反编译代码
+NumberEncryptor -> 数字加密
+JunkCode -> 生成垃圾代码
+SourceRename -> 重命名类的 "SourceName" & "SourceDebug"
+BadAnnotation -> 生成坏的Annotation
+Crasher -> 崩溃一些使用Web做Gui的反编译器
+InvalidSignature -> 无效签名
+VariableRename -> 重命名局部变量
+InvokeProxy -> 生成一个方法来代理调用或获取赋值字段
+FlowObfuscation -> 控制流
+FakeClasses -> 生成非法类
+DecompilerCrasher -> 崩溃一些反编译器
