@@ -10,7 +10,9 @@ import org.gotoobfuscator.transformer.Transformer
 import org.gotoobfuscator.utils.RandomUtils
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
+import org.objectweb.asm.tree.VarInsnNode
 import org.objectweb.asm.tree.analysis.Analyzer
+import org.objectweb.asm.tree.analysis.AnalyzerException
 import org.objectweb.asm.tree.analysis.BasicVerifier
 import java.io.File
 import java.io.FileNotFoundException
@@ -57,6 +59,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
     var useComputeMaxs = false
     var multiThreadLoadLibraries = true
     var preVerify = true
+    var classRenameRemoveMetadata = true
     var dictionaryMode = 0  // 0 Alpha , 1 Number , 2 Unicode , 3 Custom
     var dictionaryFile = ""
     var threadPoolSize = 5
@@ -158,8 +161,8 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
             for (method in classWrapper.classNode.methods) {
                 try {
                     analyzer.analyzeAndComputeMaxs(method.name,method)
-                } catch (e : Throwable) {
-                    e.addSuppressed(Throwable("Found throwable ClassName:${classWrapper.classNode.name} MethodName:${method.name}"))
+                } catch (e : AnalyzerException) {
+                    e.addSuppressed(Throwable("Found exception ClassName:${classWrapper.classNode.name} MethodName:${method.name}"))
 
                     throw e
                 }

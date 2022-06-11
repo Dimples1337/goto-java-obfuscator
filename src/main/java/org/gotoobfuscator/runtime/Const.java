@@ -1,66 +1,58 @@
 package org.gotoobfuscator.runtime;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
 
 @SuppressWarnings("unused")
 public final class Const {
-    private static final HashMap<String,Object> map = new HashMap<>();
-
-    public static Object get(String key) {
-        return map.get(key);
-    }
+    public static final Object[] ARRAY;
 
     static {
+        Object[] cache;
+
         final InputStream stream = Const.class.getResourceAsStream("/Const");
 
         if (stream == null) {
             System.out.println("Const pool not found");
+
+            cache = new Object[0];
         } else {
             try (final DataInputStream dis = new DataInputStream(stream)) {
                 final int size = dis.readInt();
 
+                cache = new Object[size];
+
                 for (int i = 0; i < size; i++) {
-                    final String sha = dis.readUTF();
-                    final int type = dis.readInt();
+                    final int type = dis.read();
 
                     switch (type) {
                         case 0:
-                            final String s = dis.readUTF();
-
-                            map.put(sha,s);
-
+                            cache[i] = dis.readUTF();
                             break;
                         case 1:
-                            final int j = dis.readInt();
-
-                            map.put(sha,j);
-
+                            cache[i] = dis.readDouble();
                             break;
                         case 2:
-                            final long l = dis.readLong();
-
-                            map.put(sha,l);
-
+                            cache[i] = dis.readFloat();
                             break;
                         case 3:
-                            final float f = dis.readFloat();
-
-                            map.put(sha,f);
-
+                            cache[i] = dis.readLong();
                             break;
                         case 4:
-                            final double d = dis.readDouble();
-
-                            map.put(sha,d);
-
+                            cache[i] = dis.readInt();
                             break;
                     }
                 }
             } catch (Throwable e) {
                 e.printStackTrace();
+
+                cache = new Object[0];
             }
         }
+
+        ARRAY = cache;
     }
 }

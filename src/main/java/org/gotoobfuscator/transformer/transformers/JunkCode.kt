@@ -12,6 +12,7 @@ import java.util.concurrent.ThreadLocalRandom
 
 class JunkCode : Transformer("JunkCode") {
     private val repeat = "${RandomUtils.randomStringByStringList(4,UnicodeDictionary.arabic)}\n".repeat(ThreadLocalRandom.current().nextInt(1000,2000))
+    private val repeatType = "[".repeat(255)
 
     private var handleMethods = 0
 
@@ -38,7 +39,8 @@ class JunkCode : Transformer("JunkCode") {
                         add(InvokeDynamicInsnNode(" ","()V", Handle(H_INVOKESTATIC," "," ","(IJIJIJIJIJIJIJIJIJIJIJIJIJ)L;",false)))
 
                         add(InsnNode(ACONST_NULL))
-                        add(MethodInsnNode(INVOKESTATIC,repeat,repeat,"([[[[[[[[[[[[[[[[[[[[[L;)V",false))
+                        add(TypeInsnNode(CHECKCAST,"${repeatType}L;"))
+                        add(MethodInsnNode(INVOKESTATIC,repeat,repeat,"(${repeatType}L;)V",false))
                     }
 
                     modifier.prepend(instruction,list)

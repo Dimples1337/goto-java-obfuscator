@@ -1,6 +1,7 @@
 package org.gotoobfuscator.utils
 
 import org.gotoobfuscator.Obfuscator
+import org.gotoobfuscator.exceptions.MissingClassException
 import org.objectweb.asm.ClassWriter
 import java.util.*
 

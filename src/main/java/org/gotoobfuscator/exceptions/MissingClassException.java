@@ -4,9 +4,9 @@ public final class MissingClassException extends RuntimeException {
     private final String missingClassName;
 
     public MissingClassException(String missingClassName) {
-        this.missingClassName = missingClassName;
+        super("Missing class " + missingClassName);
 
-        addSuppressed(new Throwable("Missing class " + missingClassName));
+        this.missingClassName = missingClassName;
     }
 
     public String getMissingClassName() {

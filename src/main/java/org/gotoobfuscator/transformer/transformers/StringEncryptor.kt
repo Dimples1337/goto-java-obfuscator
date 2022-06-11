@@ -17,6 +17,9 @@ class StringEncryptor : Transformer("StringEncryptor") {
 
     override fun transform(node: ClassNode) {
         val dictionary = UnicodeDictionary(100)
+        val key = IntArray(257) {
+            ThreadLocalRandom.current().nextInt()
+        }
 
         data.clear()
         constFieldData.clear()
@@ -26,10 +29,10 @@ class StringEncryptor : Transformer("StringEncryptor") {
         }
 
         val fieldName = dictionary.get()
-        val offsetFieldName = dictionary.get()
+        //val offsetFieldName = dictionary.get()
         val decryptMethodName = dictionary.get()
 
-        val offset = ThreadLocalRandom.current().nextInt(-100000,100000)
+        val offset = ThreadLocalRandom.current().nextInt()
 
         var pos = 0
 
@@ -44,7 +47,7 @@ class StringEncryptor : Transformer("StringEncryptor") {
                         InsnNode(AALOAD)
                     )
 
-                    data.add(EncryptData(encode((instruction as LdcInsnNode).cst.toString(),offset),pos))
+                    data.add(EncryptData(encode((instruction as LdcInsnNode).cst.toString(),offset,key),pos))
 
                     pos++
                     encryptedStringSize++
@@ -61,7 +64,7 @@ class StringEncryptor : Transformer("StringEncryptor") {
                 if (value is String) {
                     field.value = null
 
-                    data.add(EncryptData(encode(value, offset), pos))
+                    data.add(EncryptData(encode(value, offset, key), pos))
                     constFieldData.add(FieldData(pos, field))
 
                     pos++
@@ -72,9 +75,7 @@ class StringEncryptor : Transformer("StringEncryptor") {
 
         if (pos == 0) return
 
-        val offsetField = FieldNode(ACC_PRIVATE or ACC_STATIC,offsetFieldName,"I",null,offset)
         val field = FieldNode(ACC_PRIVATE or ACC_STATIC,fieldName,"[Ljava/lang/String;",null,null)
-        node.fields.add(offsetField)
         node.fields.add(field)
 
         ASMUtils.getClinitMethodNodeOrCreateNew(node).also { staticMethod ->
@@ -86,11 +87,9 @@ class StringEncryptor : Transformer("StringEncryptor") {
                 add(FieldInsnNode(PUTSTATIC,node.name,fieldName,"[Ljava/lang/String;"))
 
                 for (d in data) {
-                    add(FieldInsnNode(GETSTATIC,node.name,fieldName,"[Ljava/lang/String;"))
-                    add(ASMUtils.createNumberNode(d.pos))
                     add(LdcInsnNode(d.encryptedString))
-                    add(MethodInsnNode(INVOKESTATIC,node.name,decryptMethodName,"(Ljava/lang/String;)Ljava/lang/String;",false))
-                    add(InsnNode(AASTORE))
+                    add(ASMUtils.createNumberNode(d.pos))
+                    add(MethodInsnNode(INVOKESTATIC,node.name,decryptMethodName,"(Ljava/lang/String;I)V",false))
                 }
 
                 for (data in constFieldData) {
@@ -105,21 +104,27 @@ class StringEncryptor : Transformer("StringEncryptor") {
             modifier.apply(staticMethod)
         }
 
-        MethodNode(ACC_PRIVATE or ACC_STATIC,decryptMethodName,"(Ljava/lang/String;)Ljava/lang/String;",null,null).also { decryptMethod ->
+        MethodNode(ACC_PRIVATE or ACC_STATIC,decryptMethodName,"(Ljava/lang/String;I)V",null,null).also { decryptMethod ->
             val labels = newLabels(522)
+            val inputString = 0
+            val posLocal = 1
+            val inputCharArray = 2
+            val newCharArray = 3
+            val finalNumber = 4
+            val foreachLoopNum = 5
 
             decryptMethod.visitCode()
             decryptMethod.visitLabel(labels[0])
-            decryptMethod.visitVarInsn(ALOAD,0)
+            decryptMethod.visitVarInsn(ALOAD,inputString)
             decryptMethod.visitMethodInsn(INVOKEVIRTUAL,"java/lang/String","toCharArray","()[C",false)
-            decryptMethod.visitVarInsn(ASTORE,1)
+            decryptMethod.visitVarInsn(ASTORE,inputCharArray)
             decryptMethod.visitLabel(labels[1])
-            decryptMethod.visitVarInsn(ALOAD,1)
+            decryptMethod.visitVarInsn(ALOAD,inputCharArray)
             decryptMethod.visitInsn(ARRAYLENGTH)
             decryptMethod.visitIntInsn(NEWARRAY,5)
-            decryptMethod.visitVarInsn(ASTORE,2)
+            decryptMethod.visitVarInsn(ASTORE,newCharArray)
             decryptMethod.visitLabel(labels[2])
-            decryptMethod.visitVarInsn(ALOAD,0)
+            decryptMethod.visitVarInsn(ALOAD,inputString)
             decryptMethod.visitMethodInsn(INVOKEVIRTUAL,"java/lang/String","length","()I",false)
             decryptMethod.visitIntInsn(SIPUSH,255)
             decryptMethod.visitInsn(IAND)
@@ -128,21 +133,9 @@ class StringEncryptor : Transformer("StringEncryptor") {
             for (i in 0..255) {
                 decryptMethod.visitLabel(labels[3 + i * 2])
 
-                val xor = i xor offset
+                decryptMethod.instructions.add(ASMUtils.createNumberNode(((i + 1) xor offset.inv()) xor key[i]))
 
-                when (val numberOpcode = ASMUtils.getNumberOpcode(xor)) {
-                    BIPUSH, SIPUSH -> {
-                        decryptMethod.visitIntInsn(numberOpcode,xor)
-                    }
-                    LDC -> {
-                        decryptMethod.visitLdcInsn(xor)
-                    }
-                    else -> {
-                        decryptMethod.visitInsn(numberOpcode)
-                    }
-                }
-
-                decryptMethod.visitVarInsn(ISTORE,3)
+                decryptMethod.visitVarInsn(ISTORE,finalNumber)
                 decryptMethod.visitLabel(labels[4 + i * 2])
                 decryptMethod.visitJumpInsn(GOTO,labels[516])
             }
@@ -150,63 +143,58 @@ class StringEncryptor : Transformer("StringEncryptor") {
             //Default
             decryptMethod.visitLabel(labels[515])
 
-            val defaultNumber = 256 xor offset
+            decryptMethod.instructions.add(ASMUtils.createNumberNode(257 xor offset.inv() xor key[256]))
 
-            when (val numberOpcode = ASMUtils.getNumberOpcode(defaultNumber)) {
-                BIPUSH, SIPUSH -> {
-                    decryptMethod.visitIntInsn(numberOpcode,defaultNumber)
-                }
-                LDC -> {
-                    decryptMethod.visitLdcInsn(defaultNumber)
-                }
-                else -> {
-                    decryptMethod.visitInsn(numberOpcode)
-                }
-            }
-
-            decryptMethod.visitVarInsn(ISTORE,3)
+            decryptMethod.visitVarInsn(ISTORE,finalNumber)
             decryptMethod.visitLabel(labels[516])
             decryptMethod.visitInsn(ICONST_0)
-            decryptMethod.visitVarInsn(ISTORE,4)
+            decryptMethod.visitVarInsn(ISTORE,foreachLoopNum)
             decryptMethod.visitLabel(labels[517])
-            decryptMethod.visitVarInsn(ILOAD,4)
-            decryptMethod.visitVarInsn(ALOAD,1)
+            decryptMethod.visitVarInsn(ILOAD,foreachLoopNum)
+            decryptMethod.visitVarInsn(ALOAD,inputCharArray)
             decryptMethod.visitInsn(ARRAYLENGTH)
             decryptMethod.visitJumpInsn(IF_ICMPGE,labels[520])
             decryptMethod.visitLabel(labels[518])
-            decryptMethod.visitVarInsn(ALOAD,2)
-            decryptMethod.visitVarInsn(ILOAD,4)
-            decryptMethod.visitVarInsn(ALOAD,1)
-            decryptMethod.visitVarInsn(ILOAD,4)
+            decryptMethod.visitVarInsn(ALOAD,newCharArray)
+            decryptMethod.visitVarInsn(ILOAD,foreachLoopNum)
+            decryptMethod.visitVarInsn(ALOAD,inputCharArray)
+            decryptMethod.visitVarInsn(ILOAD,foreachLoopNum)
             decryptMethod.visitInsn(CALOAD)
-            decryptMethod.visitVarInsn(ILOAD,4)
+            decryptMethod.visitVarInsn(ILOAD,foreachLoopNum)
             decryptMethod.visitInsn(IXOR)
-            decryptMethod.visitVarInsn(ILOAD,3)
+            decryptMethod.visitVarInsn(ILOAD,finalNumber)
+            decryptMethod.visitInsn(IXOR)
+            decryptMethod.visitInsn(ICONST_M1)
             decryptMethod.visitInsn(IXOR)
             decryptMethod.visitInsn(I2C)
             decryptMethod.visitInsn(CASTORE)
             decryptMethod.visitLabel(labels[519])
-            decryptMethod.visitIincInsn(4,1)
+            decryptMethod.visitIincInsn(foreachLoopNum,1)
             decryptMethod.visitJumpInsn(GOTO,labels[517])
             decryptMethod.visitLabel(labels[520])
+
+            decryptMethod.visitFieldInsn(GETSTATIC,node.name,fieldName,"[Ljava/lang/String;")
+            decryptMethod.visitVarInsn(ILOAD,posLocal)
             decryptMethod.visitTypeInsn(NEW,"java/lang/String")
             decryptMethod.visitInsn(DUP)
-            decryptMethod.visitVarInsn(ALOAD,2)
+            decryptMethod.visitVarInsn(ALOAD,newCharArray)
             decryptMethod.visitMethodInsn(INVOKESPECIAL,"java/lang/String","<init>","([C)V",false)
             decryptMethod.visitMethodInsn(INVOKEVIRTUAL,"java/lang/String","intern","()Ljava/lang/String;",false)
-            decryptMethod.visitInsn(ARETURN)
+            decryptMethod.visitInsn(AASTORE)
+
+            decryptMethod.visitInsn(RETURN)
             decryptMethod.visitEnd()
 
             node.methods.add(decryptMethod)
         }
     }
 
-    private fun encode(s: String, offset: Int) : String {
+    private fun encode(s : String, offset : Int, key : IntArray) : String {
         val chars = s.toCharArray()
         val decode = CharArray(chars.size)
 
         for (i in chars.indices) {
-            decode[i] = (chars[i].code.xor(i xor ((s.length and 0xFF) xor offset))).toChar()
+            decode[i] = (chars[i].code.xor(i xor ((((s.length and 0xFF) + 1) xor offset.inv()) xor key[s.length and 0xFF]))).inv().toChar()
         }
 
         return String(decode)

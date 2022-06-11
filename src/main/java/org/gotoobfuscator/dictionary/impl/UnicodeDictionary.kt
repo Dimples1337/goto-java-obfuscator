@@ -18,7 +18,6 @@ class UnicodeDictionary(repeatTime : Int) : ListDictionary(repeatTime) {
 
             unicode.addAll(
                 arrayOf(
-                    "\u0489",
                     "\u034C",
                     "\u035C",
                     "\u034E",

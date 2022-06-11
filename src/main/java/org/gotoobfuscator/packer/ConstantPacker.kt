@@ -10,18 +10,22 @@ import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.lang.StringBuilder
 import java.security.MessageDigest
+import java.util.*
 import java.util.concurrent.ThreadLocalRandom
+import kotlin.experimental.inv
 
 class ConstantPacker : SpecialTransformer("ConstantPacker") {
     companion object {
         private const val STRING = 0
-        private const val INT = 1
-        private const val LONG = 2
-        private const val FLOAT = 3
-        private const val DOUBLE = 4
+        private const val DOUBLE = 1
+        private const val FLOAT = 2
+        private const val LONG = 3
+        private const val INT = 4
     }
 
-    private val map = HashMap<String,Any>()
+    private val list = LinkedList<Any>()
+
+    private var index = 0
 
     @Suppress("DuplicatedCode")
     fun accept(node : ClassNode) {
@@ -33,66 +37,62 @@ class ConstantPacker : SpecialTransformer("ConstantPacker") {
                     ASMUtils.isString(insn) -> {
                         val string = ASMUtils.getString(insn)
 
-                        push(string)
-
                         modifier.replace(insn,
-                            LdcInsnNode(sha512(string.encodeToByteArray())),
-                            MethodInsnNode(INVOKESTATIC, "org/gotoobfuscator/runtime/Const","get","(Ljava/lang/String;)Ljava/lang/Object;"),
-                            TypeInsnNode(CHECKCAST,"java/lang/String"))
+                            FieldInsnNode(GETSTATIC,"org/gotoobfuscator/runtime/Const","ARRAY","[Ljava/lang/Object;"),
+                            ASMUtils.createNumberNode(index),
+                            InsnNode(AALOAD),
+                            TypeInsnNode(CHECKCAST,"java/lang/String")
+                        )
+
+                        push(string)
                     }
                     insn is LdcInsnNode -> {
                         when (insn.cst) {
                             is Int -> {
-                                push(insn.cst)
-
                                 modifier.replace(insn,
-                                    LdcInsnNode(sha512(insn.cst.toString().encodeToByteArray())),
-                                    MethodInsnNode(INVOKESTATIC, "org/gotoobfuscator/runtime/Const","get","(Ljava/lang/String;)Ljava/lang/Object;"),
+                                    FieldInsnNode(GETSTATIC,"org/gotoobfuscator/runtime/Const","ARRAY","[Ljava/lang/Object;"),
+                                    ASMUtils.createNumberNode(index),
+                                    InsnNode(AALOAD),
                                     TypeInsnNode(CHECKCAST,"java/lang/Integer"),
                                     MethodInsnNode(INVOKEVIRTUAL,"java/lang/Integer","intValue","()I")
                                 )
+
+                                push(insn.cst)
                             }
                             is Long -> {
-                                push(insn.cst)
-
                                 modifier.replace(insn,
-                                    LdcInsnNode(sha512(insn.cst.toString().encodeToByteArray())),
-                                    MethodInsnNode(INVOKESTATIC, "org/gotoobfuscator/runtime/Const","get","(Ljava/lang/String;)Ljava/lang/Object;"),
+                                    FieldInsnNode(GETSTATIC,"org/gotoobfuscator/runtime/Const","ARRAY","[Ljava/lang/Object;"),
+                                    ASMUtils.createNumberNode(index),
+                                    InsnNode(AALOAD),
                                     TypeInsnNode(CHECKCAST,"java/lang/Long"),
                                     MethodInsnNode(INVOKEVIRTUAL,"java/lang/Long","longValue","()J")
                                 )
+
+                                push(insn.cst)
                             }
                             is Double -> {
-                                push(insn.cst)
-
                                 modifier.replace(insn,
-                                    LdcInsnNode(sha512(insn.cst.toString().encodeToByteArray())),
-                                    MethodInsnNode(INVOKESTATIC, "org/gotoobfuscator/runtime/Const","get","(Ljava/lang/String;)Ljava/lang/Object;"),
+                                    FieldInsnNode(GETSTATIC,"org/gotoobfuscator/runtime/Const","ARRAY","[Ljava/lang/Object;"),
+                                    ASMUtils.createNumberNode(index),
+                                    InsnNode(AALOAD),
                                     TypeInsnNode(CHECKCAST,"java/lang/Double"),
                                     MethodInsnNode(INVOKEVIRTUAL,"java/lang/Double","doubleValue","()D")
                                 )
+
+                                push(insn.cst)
                             }
                             is Float -> {
-                                push(insn.cst)
-
                                 modifier.replace(insn,
-                                    LdcInsnNode(sha512(insn.cst.toString().encodeToByteArray())),
-                                    MethodInsnNode(INVOKESTATIC, "org/gotoobfuscator/runtime/Const","get","(Ljava/lang/String;)Ljava/lang/Object;"),
+                                    FieldInsnNode(GETSTATIC,"org/gotoobfuscator/runtime/Const","ARRAY","[Ljava/lang/Object;"),
+                                    ASMUtils.createNumberNode(index),
+                                    InsnNode(AALOAD),
                                     TypeInsnNode(CHECKCAST,"java/lang/Float"),
                                     MethodInsnNode(INVOKEVIRTUAL,"java/lang/Float","floatValue","()F")
                                 )
+
+                                push(insn.cst)
                             }
                         }
-                    }
-                    insn is IntInsnNode -> {
-                        push(insn.operand)
-
-                        modifier.replace(insn,
-                            LdcInsnNode(sha512(insn.operand.toString().encodeToByteArray())),
-                            MethodInsnNode(INVOKESTATIC, "org/gotoobfuscator/runtime/Const","get","(Ljava/lang/String;)Ljava/lang/Object;"),
-                            TypeInsnNode(CHECKCAST,"java/lang/Integer"),
-                            MethodInsnNode(INVOKEVIRTUAL,"java/lang/Integer","intValue","()I")
-                        )
                     }
                 }
             }
@@ -101,63 +101,43 @@ class ConstantPacker : SpecialTransformer("ConstantPacker") {
         }
     }
 
-    private fun push(obj : Any) {
-        val key = sha512(obj.toString().encodeToByteArray())
+    private fun push(o : Any) {
+        list.add(o)
 
-        if (!map.containsKey(key)) {
-            map[key] = obj
-        }
+        index++
     }
 
     fun buildClass() : ByteArray {
         return IOUtils.toByteArray(ConstantPacker::class.java.getResourceAsStream("/org/gotoobfuscator/runtime/Const.class"))
     }
 
-    private fun sha512(b : ByteArray) : String {
-        val builder = StringBuilder()
-        val digest = MessageDigest.getInstance("SHA-512")
-
-        val digested = digest.digest(b)
-
-        for (byte in digested) {
-            builder.append(Integer.toHexString(byte.toInt().and(0xFF)))
-        }
-
-        return builder.toString()
-    }
-
     fun build() : ByteArray {
         val bos = ByteArrayOutputStream()
         val dos = DataOutputStream(bos)
 
-        dos.writeInt(map.size)
+        dos.writeInt(list.size)
 
-        map.forEach { entry ->
-            val key = entry.key
-            val obj = entry.value
-
-            dos.writeUTF(key)
-
-            when (obj) {
+        list.forEach { o ->
+            when (o) {
                 is String -> {
-                    dos.writeInt(STRING)
-                    dos.writeUTF(obj)
-                }
-                is Int -> {
-                    dos.writeInt(INT)
-                    dos.writeInt(obj)
-                }
-                is Long -> {
-                    dos.writeInt(LONG)
-                    dos.writeLong(obj)
-                }
-                is Float -> {
-                    dos.writeInt(FLOAT)
-                    dos.writeFloat(obj)
+                    dos.write(STRING)
+                    dos.writeUTF(o)
                 }
                 is Double -> {
-                    dos.writeInt(DOUBLE)
-                    dos.writeDouble(obj)
+                    dos.write(DOUBLE)
+                    dos.writeDouble(o)
+                }
+                is Float -> {
+                    dos.write(FLOAT)
+                    dos.writeFloat(o)
+                }
+                is Long -> {
+                    dos.write(LONG)
+                    dos.writeLong(o)
+                }
+                is Int -> {
+                    dos.write(INT)
+                    dos.writeInt(o)
                 }
             }
         }

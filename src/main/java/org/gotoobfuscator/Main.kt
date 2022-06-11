@@ -3,16 +3,13 @@ package org.gotoobfuscator
 import com.google.gson.GsonBuilder
 import org.gotoobfuscator.plugin.PluginManager
 import org.gotoobfuscator.transformer.transformers.*
-import org.gotoobfuscator.transformer.transformers.rename.ClassRename
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.io.PrintStream
 import java.nio.charset.StandardCharsets
-import kotlin.collections.ArrayList
 
 object Main {
-    private const val version = "5.3"
+    private const val version = "5.6"
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
@@ -20,7 +17,7 @@ object Main {
     fun main(args : Array<String>) {
         println("--- Goto obfuscator $version ---")
         println("By 亚蓝")
-        println("QQ交流群: 340714894")
+        println("QQ交流群 & 更新群: 340714894")
 
         if (args.size < 2) {
             printHelp()
@@ -91,6 +88,7 @@ object Main {
             obfuscator.useComputeMaxs = config.useComputeMaxs
             obfuscator.multiThreadLoadLibraries = config.multiThreadLoadLibraries
             obfuscator.preVerify = config.preVerify
+            obfuscator.classRenameRemoveMetadata = config.classRenameRemoveMetadata
 
             obfuscator.setPackerEnable(config.packerEnable)
             obfuscator.setConstantPackerEnable(config.constantPackerEnable)
@@ -98,16 +96,17 @@ object Main {
             obfuscator.threadPoolSize = config.threadPoolSize
             obfuscator.dictionaryRepeatTimeBase  = config.dictionaryRepeatTimeBase
 
-            if (config.classRename) obfuscator.addTransformers(ClassRename())
+            if (config.classRenameEnable) obfuscator.addTransformers(ClassRename())
             if (config.stringEncryptorEnable) obfuscator.addTransformers(StringEncryptor())
             if (config.hideCodeEnable) obfuscator.addTransformers(HideCode())
             if (config.numberEncryptorEnable) obfuscator.addTransformers(NumberEncryptor())
-            if (config.junkCodeEnable) obfuscator.addTransformers(JunkCode())
-            if (config.sourceRename) obfuscator.addTransformers(SourceRename())
+            if (config.sourceRenameEnable) obfuscator.addTransformers(SourceRename())
             if (config.badAnnotationEnable) obfuscator.addTransformers(BadAnnotation())
             if (config.crasherEnable) obfuscator.addTransformers(Crasher())
             if (config.invalidSignatureEnable) obfuscator.addTransformers(InvalidSignature())
             if (config.variableRenameEnable) obfuscator.addTransformers(VariableRename())
+            if (config.invokeProxyEnable) obfuscator.addTransformers(InvokeProxy())
+            if (config.junkCodeEnable) obfuscator.addTransformers(JunkCode())
 
             PluginManager(obfuscator).searchPlugins()
 

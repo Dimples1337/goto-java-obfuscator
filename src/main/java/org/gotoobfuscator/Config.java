@@ -45,6 +45,9 @@ final class Config {
     @SerializedName("PreVerify")
     public boolean preVerify = true;
 
+    @SerializedName("ClassRenameRemoveMetadata")
+    public boolean classRenameRemoveMetadata = true;
+
     @SerializedName("CorruptCRC")
     public boolean corruptCRC;
 
@@ -70,7 +73,7 @@ final class Config {
     public boolean useComputeMaxs;
 
     @SerializedName("ClassRename")
-    public boolean classRename;
+    public boolean classRenameEnable;
 
     @SerializedName("StringEncryptor")
     public boolean stringEncryptorEnable;
@@ -85,7 +88,7 @@ final class Config {
     public boolean junkCodeEnable;
 
     @SerializedName("SourceRename")
-    public boolean sourceRename;
+    public boolean sourceRenameEnable;
 
     @SerializedName("BadAnnotation")
     public boolean badAnnotationEnable;
@@ -98,6 +101,9 @@ final class Config {
 
     @SerializedName("VariableRename")
     public boolean variableRenameEnable;
+
+    @SerializedName("InvokeProxy")
+    public boolean invokeProxyEnable;
 
     public Config() {
 

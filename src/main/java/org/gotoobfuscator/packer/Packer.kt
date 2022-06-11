@@ -4,6 +4,7 @@ import org.gotoobfuscator.Obfuscator
 import org.gotoobfuscator.obj.ClassWrapper
 import org.gotoobfuscator.runtime.GotoMain
 import org.gotoobfuscator.transformer.SpecialTransformer
+import org.gotoobfuscator.transformer.transformers.InvokeProxy
 import org.gotoobfuscator.transformer.transformers.JunkCode
 import org.gotoobfuscator.transformer.transformers.NumberEncryptor
 import org.gotoobfuscator.transformer.transformers.StringEncryptor
@@ -51,9 +52,10 @@ class Packer : SpecialTransformer("Packer") {
 
         StringEncryptor().transform(node)
         NumberEncryptor().transform(node)
+        InvokeProxy().transform(node)
         JunkCode().transform(node)
 
-        val writer = ClassWriter(0)
+        val writer = ClassWriter(ClassWriter.COMPUTE_FRAMES)
 
         node.accept(writer)
 
