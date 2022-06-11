@@ -1,15 +1,15 @@
 package org.gotoobfuscator.transformer.transformers
 
+import org.gotoobfuscator.Obfuscator
 import org.gotoobfuscator.dictionary.impl.UnicodeDictionary
 import org.gotoobfuscator.transformer.Transformer
 import org.gotoobfuscator.utils.InstructionModifier
 import org.objectweb.asm.Type
-import org.objectweb.asm.tree.ClassNode
-import org.objectweb.asm.tree.FieldInsnNode
-import org.objectweb.asm.tree.MethodInsnNode
-import org.objectweb.asm.tree.MethodNode
+import org.objectweb.asm.tree.*
 
 class InvokeProxy : Transformer("InvokeProxy") {
+    private var count = 0
+
     override fun transform(node : ClassNode) {
         val syntheticMethods = ArrayList<MethodNode>()
         val dictionary = UnicodeDictionary(2)
@@ -35,6 +35,8 @@ class InvokeProxy : Transformer("InvokeProxy") {
                                     instruction,
                                     MethodInsnNode(INVOKESTATIC,node.name,methodName,instruction.desc,false)
                                 )
+
+                                count++
                             }
                             INVOKEVIRTUAL -> {
                                 val types = Type.getArgumentTypes(instruction.desc)
@@ -61,6 +63,8 @@ class InvokeProxy : Transformer("InvokeProxy") {
                                     instruction,
                                     MethodInsnNode(INVOKESTATIC, node.name, methodName, methodDesc, false)
                                 )
+
+                                count++
                             }
                         }
                     }
@@ -79,6 +83,8 @@ class InvokeProxy : Transformer("InvokeProxy") {
                                 modifier.replace(instruction,
                                     MethodInsnNode(INVOKESTATIC,node.name,methodName,methodDescriptor,false)
                                 )
+
+                                count++
                             }
                             PUTSTATIC -> {
                                 val type = Type.getType(instruction.desc)
@@ -94,6 +100,8 @@ class InvokeProxy : Transformer("InvokeProxy") {
                                 modifier.replace(instruction,
                                     MethodInsnNode(INVOKESTATIC,node.name,methodName,methodDescriptor,false)
                                 )
+
+                                count++
                             }
                             GETFIELD -> {
                                 if (!method.name.equals("<init>")) {
@@ -112,6 +120,8 @@ class InvokeProxy : Transformer("InvokeProxy") {
                                         instruction,
                                         MethodInsnNode(INVOKESTATIC, node.name, methodName, methodDescriptor, false)
                                     )
+
+                                    count++
                                 }
                             }
                             PUTFIELD -> {
@@ -131,6 +141,8 @@ class InvokeProxy : Transformer("InvokeProxy") {
                                         instruction,
                                         MethodInsnNode(INVOKESTATIC, node.name, methodName, methodDescriptor, false)
                                     )
+
+                                    count++
                                 }
                             }
                         }
@@ -142,6 +154,10 @@ class InvokeProxy : Transformer("InvokeProxy") {
         }
 
         node.methods.addAll(syntheticMethods)
+    }
+
+    override fun finish(obfuscator: Obfuscator) {
+        print("Replaced $count invokes")
     }
 
     private fun visitArgs(offset : Int,types : Array<Type>,methodNode: MethodNode) {

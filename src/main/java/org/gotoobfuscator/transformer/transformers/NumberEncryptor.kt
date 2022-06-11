@@ -85,7 +85,7 @@ class NumberEncryptor : Transformer("NumberEncryptor") {
         val random = ThreadLocalRandom.current().nextInt().toLong()
         val xor = l.xor(random)
 
-        when (ThreadLocalRandom.current().nextInt(0,3)) {
+        when (ThreadLocalRandom.current().nextInt(0, 3)) {
             0 -> {
                 list.add(LdcInsnNode(random))
                 list.add(InsnNode(L2I))

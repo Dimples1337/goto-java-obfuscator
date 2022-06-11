@@ -27,6 +27,9 @@ final class Config {
     @SerializedName("SkipClasses")
     public List<String> skipClasses = Collections.emptyList();
 
+    @SerializedName("ExcludeClasses")
+    public List<String> excludeClasses = Collections.emptyList();
+
     @SerializedName("ClassRenameExclude")
     public List<String> classRenameExclude = Collections.emptyList();
 

@@ -7,9 +7,10 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
+import java.util.*
 
 object Main {
-    private const val version = "5.6"
+    private const val version = "5.7"
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
@@ -18,6 +19,8 @@ object Main {
         println("--- Goto obfuscator $version ---")
         println("By 亚蓝")
         println("QQ交流群 & 更新群: 340714894")
+
+        kfc()
 
         if (args.size < 2) {
             printHelp()
@@ -36,6 +39,16 @@ object Main {
             else -> {
                 printHelp()
             }
+        }
+    }
+
+    private fun kfc() {
+        val calendar = Calendar.getInstance()
+
+        calendar.time = Date()
+
+        if (calendar.get(Calendar.DAY_OF_WEEK) == 5) {
+            println("今天是疯狂星期四!")
         }
     }
 
@@ -74,6 +87,7 @@ object Main {
             obfuscator.addExtractZips(config.extractZips)
 
             obfuscator.addSkipClasses(config.skipClasses)
+            obfuscator.addExcludeClassNames(config.excludeClasses)
 
             obfuscator.dictionaryFile = config.classRenameDictionaryFile
 

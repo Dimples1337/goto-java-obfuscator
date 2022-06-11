@@ -32,6 +32,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
     }
 
     val classes = HashMap<String,ClassWrapper>()
+    val excludeClasses = HashMap<String,ClassWrapper>()
     val libClasses = ConcurrentHashMap<String,ClassWrapper>()
     val allClasses = HashMap<String,ClassWrapper>()
     val resources = HashMap<String,Resource>()
@@ -39,6 +40,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
     private val libraries = ArrayList<File>()
     private val extractZips = ArrayList<String>()
     private val skipClasses = ArrayList<String>()
+    private val excludeClassNames = ArrayList<String>()
 
     private val transformers = ArrayList<Transformer>()
 
@@ -121,6 +123,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
         threadPool.shutdown()
 
         allClasses.putAll(classes)
+        allClasses.putAll(excludeClasses)
         allClasses.putAll(libClasses)
 
         transformers.forEach { transformer ->
@@ -133,6 +136,8 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
             }
 
             transformer.finish(this)
+
+            println("Transformer: ${transformer.name} done")
         }
 
         if (constantPacker.isEnable) {
@@ -198,6 +203,21 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
 
                                 skip = true
                                 break@ForEach
+                            }
+                        }
+
+                        if (!skip) {
+                            ForEach@ for (s in excludeClassNames) {
+                                if (entry.name.startsWith(s)) {
+                                    file.getInputStream(entry).use {
+                                        excludeClasses[entry.name] = ClassWrapper(IOUtils.toByteArray(it))
+                                    }
+
+                                    loadedClasses++
+                                    skip = true
+
+                                    break@ForEach
+                                }
                             }
                         }
 
@@ -330,6 +350,37 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
                 putDuplicateResource(entry.name,jos)
             }
         )
+
+        excludeClasses.values.forEach { wrapper ->
+            val entry = JarEntry(
+                if (classFolder)
+                    "${wrapper.name}.class/"
+                else
+                    "${wrapper.name}.class"
+            )
+
+            handleEntry(entry)
+
+            try {
+                jos.putNextEntry(entry)
+            } catch (e : Throwable) {
+                println("Writing class ${wrapper.name} error")
+                throw e
+            }
+
+            try {
+                jos.write(wrapper.toByteArray(useComputeMaxs))
+            } catch (e : Throwable) {
+                e.printStackTrace()
+                println("Write class ${wrapper.name} error try use original bytes")
+
+                jos.write(wrapper.originalBytes)
+            }
+
+            jos.closeEntry()
+
+            putDuplicateResource(entry.name,jos)
+        }
 
         classes.values.forEach(
             action = {
@@ -523,6 +574,14 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
 
     fun addSkipClasses(vararg skipClasses : String) {
         this.skipClasses.addAll(skipClasses)
+    }
+
+    fun addExcludeClassNames(excludeClassNames : List<String>) {
+        this.excludeClassNames.addAll(excludeClassNames)
+    }
+
+    fun addExcludeClassNames(vararg excludeClassNames : String) {
+        this.excludeClassNames.addAll(excludeClassNames)
     }
 
     fun setPackerEnable(enable : Boolean) {

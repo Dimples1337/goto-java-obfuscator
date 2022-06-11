@@ -345,6 +345,7 @@ class ClassRename : Transformer("ClassRename") {
 
         val simpleRemapper = GotoRemapper()
         val newClasses = HashMap<String,ClassWrapper>()
+        val newExcludeClasses = HashMap<String,ClassWrapper>()
 
         obfuscator.classes.forEach(action = {
             val newNode = ClassNode()
@@ -357,11 +358,24 @@ class ClassRename : Transformer("ClassRename") {
             newClasses[newNode.name] = ClassWrapper(newNode,it.value.originalBytes)
         })
 
+        obfuscator.excludeClasses.forEach {
+            val newNode = ClassNode()
+            val classRemapper = ClassRemapper(newNode, simpleRemapper)
+
+            it.value.classNode.accept(classRemapper)
+
+            newExcludeClasses[newNode.name] = ClassWrapper(newNode,it.value.originalBytes)
+        }
+
         obfuscator.classes.clear()
         obfuscator.classes.putAll(newClasses)
 
+        obfuscator.excludeClasses.clear()
+        obfuscator.excludeClasses.putAll(newExcludeClasses)
+
         obfuscator.allClasses.clear()
         obfuscator.allClasses.putAll(obfuscator.classes)
+        obfuscator.allClasses.putAll(obfuscator.excludeClasses)
         obfuscator.allClasses.putAll(obfuscator.libClasses)
 
         mapping.clear()
