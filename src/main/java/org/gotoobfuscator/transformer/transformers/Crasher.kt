@@ -20,7 +20,7 @@ class Crasher : Transformer("Crasher") {
     private fun setup(basePath : String?,obfuscator : Obfuscator) {
         val node = ClassNode()
 
-        node.name = "<html><img src=\"https:" + RandomUtils.randomString(10, "0123456789")
+        node.name = "<html><img src=\"https:" + RandomUtils.randomString(10,"0123456789")
         node.access = ACC_PUBLIC
         node.version = V1_8
 
@@ -33,53 +33,18 @@ class Crasher : Transformer("Crasher") {
             builder.append(basePath)
         }
 
-        for (i in 0..250) {
-            builder.append(
-                when (ThreadLocalRandom.current().nextInt(0,11)) {
-                    0 -> {
-                        "&"
-                    }
-                    1 -> {
-                        "_"
-                    }
-                    2 -> {
-                        "\n"
-                    }
-                    3 -> {
-                        "`"
-                    }
-                    4 -> {
-                        "goto"
-                    }
-                    5 -> {
-                        ";"
-                    }
-                    6 -> {
-                        "'"
-                    }
-                    7 -> {
-                        "%"
-                    }
-                    8 -> {
-                        "$"
-                    }
-                    9 -> {
-                        "@"
-                    }
-                    10 -> {
-                        "#"
-                    }
-                    else -> {
-                        "+"
-                    }
-                }
-            ).append(File.separator)
+        for (i in 0..ThreadLocalRandom.current().nextInt(250,500)) {
+            builder.append("\n\u3000\u2007".random()).append(File.separator)
         }
 
-        builder.append(RandomUtils.randomIllegalJavaName()).append(".class")
+        builder.append(randomSpace()).append(".class")
 
         val s = builder.toString()
 
         obfuscator.resources[s] = Resource(s,writer.toByteArray())
+    }
+
+    private fun randomSpace() : String {
+        return RandomUtils.randomString(ThreadLocalRandom.current().nextInt(5,10),"\n\u3000\u2007")
     }
 }

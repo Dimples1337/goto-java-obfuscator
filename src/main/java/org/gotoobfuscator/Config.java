@@ -33,6 +33,9 @@ final class Config {
     @SerializedName("ClassRenameDictionaryMode")
     public int classRenameDictionaryMode = 0;
 
+    @SerializedName("DictionaryRepeatTimeBase")
+    public int dictionaryRepeatTimeBase = 1;
+
     @SerializedName("ThreadPoolSize")
     public int threadPoolSize = 5;
 

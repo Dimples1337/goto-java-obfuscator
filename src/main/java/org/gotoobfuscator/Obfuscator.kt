@@ -60,6 +60,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
     var dictionaryMode = 0  // 0 Alpha , 1 Number , 2 Unicode , 3 Custom
     var dictionaryFile = ""
     var threadPoolSize = 5
+    var dictionaryRepeatTimeBase = 1
 
     init {
         if (!inputFile.exists()) {

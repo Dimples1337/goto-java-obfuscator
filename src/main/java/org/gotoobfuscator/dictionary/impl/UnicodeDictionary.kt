@@ -1,11 +1,11 @@
 package org.gotoobfuscator.dictionary.impl
 
-import org.gotoobfuscator.dictionary.IDictionary
+import org.gotoobfuscator.dictionary.ListDictionary
 
-class UnicodeDictionary(val repeatTime : Int) : IDictionary {
+class UnicodeDictionary(repeatTime : Int) : ListDictionary(repeatTime) {
     companion object {
-        //private val chinese = ArrayList<Char>()
-        val arabic = ArrayList<Char>()
+        val arabic = ArrayList<String>()
+        val unicode = ArrayList<String>()
 
         init {
             //for (i in 13312..40956) { //中文
@@ -13,40 +13,26 @@ class UnicodeDictionary(val repeatTime : Int) : IDictionary {
             //}
 
             for (i in 0x060C..0x06FE) { //阿拉伯文
-                arabic.add(i.toChar())
+                arabic.add(i.toChar().toString())
             }
+
+            unicode.addAll(
+                arrayOf(
+                    "\u0489",
+                    "\u034C",
+                    "\u035C",
+                    "\u034E",
+                    "\u0344",
+                    "\u0306",
+                    "\u0307",
+                    "\u0321",
+                    "\u0331"
+                )
+            )
         }
     }
 
-    private val list = ArrayList<String>()
-
-    @Suppress("DuplicatedCode")
-    override fun get() : String {
-        var s : String
-        var ticks = 0
-        var repeatTime = repeatTime
-
-        do {
-            s = run {
-                val b = StringBuilder()
-
-                repeat(repeatTime) {
-                    b.append(arabic.random())
-                }
-
-                return@run b.toString()
-            }
-
-            if (ticks == arabic.size) {
-                repeatTime++
-                ticks = 0
-            }
-
-            ticks++
-        } while (list.contains(s))
-
-        list.add(s)
-
-        return s
+    override fun getList(): List<String> {
+        return unicode
     }
 }

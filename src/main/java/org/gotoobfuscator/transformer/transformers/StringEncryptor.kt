@@ -193,6 +193,7 @@ class StringEncryptor : Transformer("StringEncryptor") {
             decryptMethod.visitInsn(DUP)
             decryptMethod.visitVarInsn(ALOAD,2)
             decryptMethod.visitMethodInsn(INVOKESPECIAL,"java/lang/String","<init>","([C)V",false)
+            decryptMethod.visitMethodInsn(INVOKEVIRTUAL,"java/lang/String","intern","()Ljava/lang/String;",false)
             decryptMethod.visitInsn(ARETURN)
             decryptMethod.visitEnd()
 

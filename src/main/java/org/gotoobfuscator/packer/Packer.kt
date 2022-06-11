@@ -53,7 +53,7 @@ class Packer : SpecialTransformer("Packer") {
         NumberEncryptor().transform(node)
         JunkCode().transform(node)
 
-        val writer = ClassWriter(ClassWriter.COMPUTE_FRAMES)
+        val writer = ClassWriter(0)
 
         node.accept(writer)
 

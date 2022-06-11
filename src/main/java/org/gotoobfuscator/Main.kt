@@ -12,7 +12,7 @@ import java.nio.charset.StandardCharsets
 import kotlin.collections.ArrayList
 
 object Main {
-    private const val version = "5.2"
+    private const val version = "5.3"
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
@@ -96,6 +96,7 @@ object Main {
             obfuscator.setConstantPackerEnable(config.constantPackerEnable)
 
             obfuscator.threadPoolSize = config.threadPoolSize
+            obfuscator.dictionaryRepeatTimeBase  = config.dictionaryRepeatTimeBase
 
             if (config.classRename) obfuscator.addTransformers(ClassRename())
             if (config.stringEncryptorEnable) obfuscator.addTransformers(StringEncryptor())

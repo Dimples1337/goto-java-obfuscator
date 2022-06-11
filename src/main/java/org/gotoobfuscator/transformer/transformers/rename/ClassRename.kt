@@ -4,6 +4,7 @@ import org.gotoobfuscator.Obfuscator
 import org.gotoobfuscator.obj.ClassWrapper
 import org.gotoobfuscator.transformer.Transformer
 import org.gotoobfuscator.dictionary.IDictionary
+import org.gotoobfuscator.utils.ConsoleProgressBar
 import org.objectweb.asm.commons.ClassRemapper
 import org.objectweb.asm.commons.SimpleRemapper
 import org.objectweb.asm.tree.ClassNode
@@ -11,7 +12,6 @@ import org.objectweb.asm.tree.MethodNode
 import java.io.FileOutputStream
 import java.lang.reflect.Modifier
 import java.nio.charset.StandardCharsets
-import java.util.*
 import kotlin.collections.ArrayList
 import kotlin.collections.HashMap
 import kotlin.collections.HashSet
@@ -41,7 +41,7 @@ class ClassRename : Transformer("ClassRename") {
 
     private fun transform() {
         val classWrappers = Obfuscator.Instance.classes.values
-        val classes = LinkedList<ClassNode>()
+        val classes = ArrayList<ClassNode>()
 
         classWrappers.forEach { classes.add(it.classNode) }
 
@@ -49,9 +49,16 @@ class ClassRename : Transformer("ClassRename") {
             -(it.name.length - it.name.replace("$","").length)
         }
 
+        val classesSize = classes.size.toDouble()
+        var consoleProgressBar = ConsoleProgressBar()
+        var ticks = 1.0
+
         print("Remapping classes")
 
         MainForEach@ for (node in classes) {
+            consoleProgressBar.show(ticks,classesSize,node.name)
+            ticks++
+
             if (isExclude(node)) continue@MainForEach
 
             for (method in node.methods) {
@@ -63,15 +70,27 @@ class ClassRename : Transformer("ClassRename") {
             remap(node)
         }
 
+        consoleProgressBar = ConsoleProgressBar()
+        ticks = 1.0
+
         print("Building tree")
 
         for (node in classes) {
             buildTree(node,null)
+
+            consoleProgressBar.show(ticks,classesSize,node.name)
+            ticks++
         }
+
+        consoleProgressBar = ConsoleProgressBar()
+        ticks = 1.0
 
         print("Remapping field and method")
 
         MainForEach@ for (node in classes) {
+            consoleProgressBar.show(ticks,classesSize,node.name)
+            ticks++
+
             if (isExclude(node)) continue@MainForEach
 
             for (field in node.fields) {
@@ -94,6 +113,8 @@ class ClassRename : Transformer("ClassRename") {
                 }
             }
         }
+
+        classTreeMap.clear()
     }
 
     private fun canRemapMethod(set : HashSet<ClassNode>,startClass : ClassNode,owner : ClassNode,methodNode : MethodNode) : Boolean {

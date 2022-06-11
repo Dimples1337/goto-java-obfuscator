@@ -11,7 +11,7 @@ import org.objectweb.asm.tree.*
 import java.util.concurrent.ThreadLocalRandom
 
 class JunkCode : Transformer("JunkCode") {
-    private val repeat = "${RandomUtils.randomString(4,UnicodeDictionary.arabic)}\n".repeat(ThreadLocalRandom.current().nextInt(1000,2000))
+    private val repeat = "${RandomUtils.randomStringByStringList(4,UnicodeDictionary.arabic)}\n".repeat(ThreadLocalRandom.current().nextInt(1000,2000))
 
     private var handleMethods = 0
 

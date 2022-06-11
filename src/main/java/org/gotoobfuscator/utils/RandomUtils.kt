@@ -45,6 +45,16 @@ object RandomUtils {
         return stringBuilder.toString()
     }
 
+    fun randomStringByStringList(length : Int,stringPool : List<String>) : String {
+        val stringBuilder = StringBuilder()
+
+        for (i in 0..length) {
+            stringBuilder.append(stringPool[ThreadLocalRandom.current().nextInt(0,stringPool.size)])
+        }
+
+        return stringBuilder.toString()
+    }
+
     fun randomString(length : Int,list : List<Char>) : String {
         val stringBuilder = StringBuilder()
 
