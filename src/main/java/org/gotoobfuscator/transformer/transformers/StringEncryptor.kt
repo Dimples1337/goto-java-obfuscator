@@ -47,7 +47,7 @@ class StringEncryptor : Transformer("StringEncryptor") {
                         InsnNode(AALOAD)
                     )
 
-                    data.add(EncryptData(encode((instruction as LdcInsnNode).cst.toString(),offset,key),pos))
+                    data.add(EncryptData(encode((instruction as LdcInsnNode).cst.toString(),offset,key,pos),pos))
 
                     pos++
                     encryptedStringSize++
@@ -64,7 +64,7 @@ class StringEncryptor : Transformer("StringEncryptor") {
                 if (value is String) {
                     field.value = null
 
-                    data.add(EncryptData(encode(value, offset, key), pos))
+                    data.add(EncryptData(encode(value, offset, key,pos), pos))
                     constFieldData.add(FieldData(pos, field))
 
                     pos++
@@ -164,6 +164,8 @@ class StringEncryptor : Transformer("StringEncryptor") {
             decryptMethod.visitInsn(IXOR)
             decryptMethod.visitVarInsn(ILOAD,finalNumber)
             decryptMethod.visitInsn(IXOR)
+            decryptMethod.visitVarInsn(ILOAD,posLocal)
+            decryptMethod.visitInsn(IXOR)
             decryptMethod.visitInsn(ICONST_M1)
             decryptMethod.visitInsn(IXOR)
             decryptMethod.visitInsn(I2C)
@@ -189,12 +191,12 @@ class StringEncryptor : Transformer("StringEncryptor") {
         }
     }
 
-    private fun encode(s : String, offset : Int, key : IntArray) : String {
+    private fun encode(s : String, offset : Int, key : IntArray, pos : Int) : String {
         val chars = s.toCharArray()
         val decode = CharArray(chars.size)
 
         for (i in chars.indices) {
-            decode[i] = (chars[i].code.xor(i xor ((((s.length and 0xFF) + 1) xor offset.inv()) xor key[s.length and 0xFF]))).inv().toChar()
+            decode[i] = (chars[i].code.xor(i xor ((((s.length and 0xFF) + 1) xor offset.inv()) xor key[s.length and 0xFF]) xor pos)).inv().toChar()
         }
 
         return String(decode)

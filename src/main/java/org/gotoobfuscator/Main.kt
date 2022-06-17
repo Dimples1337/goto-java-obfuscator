@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 
 object Main {
-    private const val version = "5.7"
+    private const val version = "5.8"
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
 

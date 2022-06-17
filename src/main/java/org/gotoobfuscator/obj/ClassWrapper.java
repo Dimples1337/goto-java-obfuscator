@@ -42,9 +42,9 @@ public final class ClassWrapper {
             return writer.toByteArray();
         } catch (TypeNotPresentException | MissingClassException e) {
             if (e instanceof TypeNotPresentException) {
-                System.err.println("找不到类: " + ((TypeNotPresentException) e).typeName() + " 尝试使用COMPUTE_MAXS");
+                System.err.println("写出" + name + "时找不到类: " + ((TypeNotPresentException) e).typeName() + " 尝试使用COMPUTE_MAXS");
             } else {
-                System.err.println("找不到类: " + ((MissingClassException) e).getMissingClassName() + " 尝试使用COMPUTE_MAXS");
+                System.err.println("写出" + name + "时找不到类: " + ((MissingClassException) e).getMissingClassName() + " 尝试使用COMPUTE_MAXS");
             }
         } catch (Throwable e) {
             e.addSuppressed(new Throwable("写出" + name + "错误 尝试使用COMPUTE_MAXS"));
