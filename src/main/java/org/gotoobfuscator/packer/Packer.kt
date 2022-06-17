@@ -4,10 +4,7 @@ import org.gotoobfuscator.Obfuscator
 import org.gotoobfuscator.obj.ClassWrapper
 import org.gotoobfuscator.runtime.GotoMain
 import org.gotoobfuscator.transformer.SpecialTransformer
-import org.gotoobfuscator.transformer.transformers.InvokeProxy
-import org.gotoobfuscator.transformer.transformers.JunkCode
-import org.gotoobfuscator.transformer.transformers.NumberEncryptor
-import org.gotoobfuscator.transformer.transformers.StringEncryptor
+import org.gotoobfuscator.transformer.transformers.*
 import org.gotoobfuscator.utils.EncodeUtils
 import org.gotoobfuscator.utils.RandomUtils
 import org.objectweb.asm.ClassReader
@@ -53,6 +50,7 @@ class Packer : SpecialTransformer("Packer") {
         StringEncryptor().transform(node)
         NumberEncryptor().transform(node)
         InvokeProxy().transform(node)
+        VariableRename().transform(node)
         JunkCode().transform(node)
 
         val writer = ClassWriter(ClassWriter.COMPUTE_FRAMES)
@@ -68,7 +66,7 @@ class Packer : SpecialTransformer("Packer") {
     }
 
     fun handleEntry(wrapper : ClassWrapper) : JarEntry {
-        val encrypt = GotoMain.sha256(wrapper.classNode.name.toByteArray(StandardCharsets.UTF_8))
+        val encrypt = GotoMain.name(wrapper.classNode.name.toCharArray(),key.size)
 
         mapping[wrapper.classNode.name] = encrypt
 

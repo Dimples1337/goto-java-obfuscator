@@ -32,7 +32,7 @@ public class GotoMain extends ClassLoader {
     @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         final String replaced = name.replace(".", "/");
-        final String encrypted = sha256(replaced.getBytes(StandardCharsets.UTF_8));
+        final String encrypted = name(replaced.toCharArray(),key.length);
         final InputStream stream = GotoMain.class.getResourceAsStream("/" + encrypted);
 
         if (stream != null) {
@@ -78,21 +78,58 @@ public class GotoMain extends ClassLoader {
         return cipher.doFinal(data);
     }
 
-    public static String sha256(byte[] ar) {
-        final StringBuilder builder = new StringBuilder();
+    public static String name(char[] c,int key) {
+        final char[] c2 = new char[c.length];
 
-        try {
-            final MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-
-            final byte[] bytes = messageDigest.digest(ar);
-
-            for (byte b : bytes) {
-                builder.append(Integer.toHexString(b & 0xFF));
-            }
-        } catch (Throwable e) {
-            e.printStackTrace();
+        for (int i = 0; i < c.length; i++) {
+            c2[i] = (char) ~(c[i] ^ key ^ (i + 1));
         }
 
-        return builder.toString();
+        final String end;
+
+        switch (c.length % 9) {
+            case 0: {
+                end = ".exe";
+                break;
+            }
+            case 1: {
+                end = ".jar";
+                break;
+            }
+            case 2: {
+                end = ".png";
+                break;
+            }
+            case 3: {
+                end = ".bmp";
+                break;
+            }
+            case 4: {
+                end = ".bat";
+                break;
+            }
+            case 5: {
+                end = ".dll";
+                break;
+            }
+            case 6: {
+                end = ".jpg";
+                break;
+            }
+            case 7: {
+                end = ".mp3";
+                break;
+            }
+            case 8: {
+                end = ".mp4";
+                break;
+            }
+            default: {
+                end = "";
+                break;
+            }
+        }
+
+        return (new String(c2) + end).intern();
     }
 }

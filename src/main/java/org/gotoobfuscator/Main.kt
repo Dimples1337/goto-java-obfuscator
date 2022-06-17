@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 
 object Main {
-    private const val version = "5.8"
+    private const val version = "5.9"
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
@@ -118,8 +118,8 @@ object Main {
             if (config.badAnnotationEnable) obfuscator.addTransformers(BadAnnotation())
             if (config.crasherEnable) obfuscator.addTransformers(Crasher())
             if (config.invalidSignatureEnable) obfuscator.addTransformers(InvalidSignature())
-            if (config.variableRenameEnable) obfuscator.addTransformers(VariableRename())
             if (config.invokeProxyEnable) obfuscator.addTransformers(InvokeProxy())
+            if (config.variableRenameEnable) obfuscator.addTransformers(VariableRename())
             if (config.junkCodeEnable) obfuscator.addTransformers(JunkCode())
 
             PluginManager(obfuscator).searchPlugins()

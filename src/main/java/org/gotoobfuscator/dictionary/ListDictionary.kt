@@ -33,5 +33,9 @@ abstract class ListDictionary(private val baseRepeatTime : Int) : IDictionary {
         return s
     }
 
+    fun reset() {
+        used.clear()
+    }
+
     abstract fun getList() : List<String>
 }

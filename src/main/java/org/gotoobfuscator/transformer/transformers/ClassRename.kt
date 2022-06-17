@@ -4,6 +4,7 @@ import org.gotoobfuscator.Obfuscator
 import org.gotoobfuscator.obj.ClassWrapper
 import org.gotoobfuscator.transformer.Transformer
 import org.gotoobfuscator.dictionary.IDictionary
+import org.gotoobfuscator.dictionary.ListDictionary
 import org.gotoobfuscator.exceptions.MissingClassException
 import org.gotoobfuscator.utils.ConsoleProgressBar
 import org.objectweb.asm.Type
@@ -43,10 +44,9 @@ class ClassRename : Transformer("ClassRename") {
     private val classTreeMap = HashMap<String, ClassTree>()
 
     private fun transform() {
-        val classWrappers = Obfuscator.Instance.classes.values
         val classes = ArrayList<ClassNode>()
 
-        classWrappers.forEach { classes.add(it.classNode) }
+        Obfuscator.Instance.classes.values.forEach { classes.add(it.classNode) }
 
         classes.sortBy {
             -(it.name.length - it.name.replace("$","").length)
@@ -101,6 +101,14 @@ class ClassRename : Transformer("ClassRename") {
 
         print("Remapping field and method")
 
+        val localVariablesDictionary = object : ListDictionary(10) {
+            private val list = arrayListOf("I","i")
+
+            override fun getList(): List<String> {
+                return list
+            }
+        }
+
         MainForEach@ for (node in classes) {
             consoleProgressBar.show(ticks,classesSize,node.name)
             ticks++
@@ -112,9 +120,11 @@ class ClassRename : Transformer("ClassRename") {
             }
 
             for (method in node.methods) {
+                localVariablesDictionary.reset()
+
                 method.localVariables?.forEach {
                     if (it.name != "this")
-                        it.name = "var${it.index}"
+                        it.name = localVariablesDictionary.get()
                 }
 
                 if (invalidMethodName(method.name,method.desc))
@@ -145,7 +155,7 @@ class ClassRename : Transformer("ClassRename") {
         if (!set.contains(owner)) {
             set.add(owner)
 
-            if (methodMapping.containsKey(methodKey(methodNode,owner))) {
+            if (methodMapping.containsKey(methodKey(methodNode, owner))) {
                 return false
             }
 
