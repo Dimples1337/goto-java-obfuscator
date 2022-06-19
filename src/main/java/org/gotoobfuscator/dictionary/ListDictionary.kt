@@ -37,5 +37,9 @@ abstract class ListDictionary(private val baseRepeatTime : Int) : IDictionary {
         used.clear()
     }
 
+    fun addUsed(s : String) {
+        used.add(s)
+    }
+
     abstract fun getList() : List<String>
 }

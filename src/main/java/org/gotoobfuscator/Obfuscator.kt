@@ -2,21 +2,24 @@ package org.gotoobfuscator
 
 import org.apache.commons.io.IOUtils
 import org.gotoobfuscator.exceptions.MissingClassException
+import org.gotoobfuscator.interfaces.ClassManager
 import org.gotoobfuscator.obj.ClassWrapper
 import org.gotoobfuscator.obj.Resource
 import org.gotoobfuscator.packer.ConstantPacker
 import org.gotoobfuscator.packer.Packer
 import org.gotoobfuscator.transformer.Transformer
+import org.gotoobfuscator.libloader.DynamicLibLoader
+import org.gotoobfuscator.libloader.StaticLibLoader
 import org.gotoobfuscator.utils.RandomUtils
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
-import org.objectweb.asm.tree.VarInsnNode
 import org.objectweb.asm.tree.analysis.Analyzer
 import org.objectweb.asm.tree.analysis.AnalyzerException
 import org.objectweb.asm.tree.analysis.BasicVerifier
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.FileOutputStream
+import java.lang.IllegalArgumentException
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.FileTime
 import java.util.concurrent.ConcurrentHashMap
@@ -26,14 +29,13 @@ import java.util.concurrent.ThreadPoolExecutor
 import java.util.jar.*
 import java.util.zip.*
 
-class Obfuscator(private val inputFile : File,private val outputFile : File) {
+class Obfuscator(private val inputFile : File,private val outputFile : File) : ClassManager {
     companion object {
         lateinit var Instance : Obfuscator
     }
 
     val classes = HashMap<String,ClassWrapper>()
     val excludeClasses = HashMap<String,ClassWrapper>()
-    val libClasses = ConcurrentHashMap<String,ClassWrapper>()
     val allClasses = HashMap<String,ClassWrapper>()
     val resources = HashMap<String,Resource>()
 
@@ -48,6 +50,8 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
 
     private val packer = Packer()
     private val constantPacker = ConstantPacker()
+
+    private var libLoader : ClassManager? = null
 
     private var manifest : Manifest? = null
 
@@ -66,6 +70,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
     var dictionaryFile = ""
     var threadPoolSize = 5
     var dictionaryRepeatTimeBase = 1
+    var libMode = 0 // 0 DynamicLibLoader , 1 StaticLibLoader
 
     init {
         if (!inputFile.exists()) {
@@ -75,34 +80,35 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
         Instance = this
     }
 
-    private val isLibMap = HashMap<ClassNode,Boolean>()
-
-    fun isLibNode(node : ClassNode) : Boolean {
-        val b = isLibMap[node]
-
-        if (b != null) return b
-
-        for (libClass in libClasses.values) {
-            if (libClass.classNode == node) {
-                isLibMap[node] = true
-                return true
-            }
-        }
-
-        isLibMap[node] = false
-        return false
+    override fun isLibNode(node : ClassNode) : Boolean {
+        return libLoader!!.isLibNode(node)
     }
 
     private val nodeMap = HashMap<String,ClassNode>()
 
-    fun getClassNode(name : String) : ClassNode {
+    override fun getClassNode(name : String) : ClassNode {
         val fromMap = nodeMap[name]
 
         if (fromMap != null) return fromMap
 
-        val classWrapper = allClasses.values.find { it.classNode.name == name } ?: throw MissingClassException(name)
+        val classWrapper = allClasses.values.find { it.classNode.name == name }
 
-        return classWrapper.classNode.also { nodeMap[name] = it }
+        return run {
+            when {
+                classWrapper != null -> {
+                    val node = classWrapper.classNode
+
+                    nodeMap[name] = node
+
+                    node
+                }
+                else -> {
+                    libLoader!!.getClassNode(name).also {
+                        nodeMap[name] = it
+                    }
+                }
+            }
+        }
     }
 
     fun start() {
@@ -110,21 +116,36 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
 
         loadInput(inputFile)
 
-        val threadPool = Executors.newFixedThreadPool(threadPoolSize) as ThreadPoolExecutor
+        when (libMode) {
+            0 -> {
+                println("Using DynamicLibLoader")
 
-        println("ThreadPoolSize: ${threadPool.corePoolSize}")
+                libLoader = DynamicLibLoader(libraries)
+            }
+            1 -> {
+                println("Using StaticLibLoader")
 
-        loadLibraries(threadPool)
+                libLoader = StaticLibLoader(libraries,multiThreadLoadLibraries)
 
-        while (threadPool.activeCount != 0) {
-            Thread.sleep(1)
+                val threadPool = Executors.newFixedThreadPool(threadPoolSize) as ThreadPoolExecutor
+
+                println("ThreadPoolSize: ${threadPool.corePoolSize}")
+
+                (libLoader as StaticLibLoader).loadLibraries(threadPool)
+
+                while (threadPool.activeCount != 0) {
+                    Thread.sleep(1)
+                }
+
+                threadPool.shutdown()
+            }
+            else -> {
+                throw IllegalArgumentException("Unknown lib mode $libMode")
+            }
         }
-
-        threadPool.shutdown()
 
         allClasses.putAll(classes)
         allClasses.putAll(excludeClasses)
-        allClasses.putAll(libClasses)
 
         transformers.forEach { transformer ->
             println("Start transformer: ${transformer.name}")
@@ -154,6 +175,10 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
 
         if (packer.isEnable) {
             packer.writeMapping()
+        }
+
+        if (libLoader is DynamicLibLoader) {
+            IOUtils.closeQuietly(libLoader as DynamicLibLoader)
         }
     }
 
@@ -258,36 +283,6 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
         println("Loaded $loadedClasses classes")
         println("Skipped $skippedClasses classes")
         println("Loaded $loadedResources resources")
-    }
-
-    private fun loadLibraries(threadPool : ThreadPoolExecutor) {
-        println("Loading libraries MultiThreadLoadLibraries:${multiThreadLoadLibraries}")
-
-        libraries.forEach { libFile ->
-            if (libFile.isDirectory) {
-                libFile.listFiles()?.forEach {
-                    try {
-                        if (multiThreadLoadLibraries) {
-                            threadPool.execute(SingleLibraryLoader(it))
-                        } else {
-                            SingleLibraryLoader(it).run()
-                        }
-                    } catch (e : Throwable) {
-                        e.printStackTrace()
-                    }
-                }
-            } else {
-                try {
-                    if (multiThreadLoadLibraries) {
-                        threadPool.execute(SingleLibraryLoader(libFile))
-                    } else {
-                        SingleLibraryLoader(libFile).run()
-                    }
-                } catch (e : Throwable) {
-                    e.printStackTrace()
-                }
-            }
-        }
     }
 
     private fun writeOutput() {
@@ -484,9 +479,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
 
                         putDuplicateResource(entry.name, jos)
                     } catch (e : ZipException) {
-                        if (e.message!!.startsWith("duplicate entry")) {
-                            println("Extract entry failed reason: ${e.message}")
-                        }
+                        e.printStackTrace()
                     }
                 }
             } catch (e : Throwable) {
@@ -590,34 +583,5 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) {
 
     fun setConstantPackerEnable(enable : Boolean) {
         constantPacker.isEnable = enable
-    }
-
-    private inner class SingleLibraryLoader(private val libFile : File) : Runnable {
-        override fun run() {
-            var loadedClasses = 0
-
-            JarFile(libFile).use { file ->
-                for (entry in file.entries()) {
-                    val name = entry.name
-
-                    if (name.endsWith(".class")) {
-                        file.getInputStream(entry).use { stream ->
-                            val data = IOUtils.toByteArray(stream)
-
-                            val classReader = ClassReader(data)
-                            val classNode = ClassNode()
-
-                            classReader.accept(classNode,0)
-
-                            libClasses[name] = ClassWrapper(classNode,data)
-
-                            loadedClasses++
-                        }
-                    }
-                }
-            }
-
-            println("Loaded $loadedClasses classes from ${libFile.absolutePath}")
-        }
     }
 }

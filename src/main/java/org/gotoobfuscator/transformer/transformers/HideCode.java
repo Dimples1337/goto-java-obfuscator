@@ -26,10 +26,6 @@ public final class HideCode extends Transformer {
             if (notSynthetic(methodNode.access)) {
                 methodNode.access |= ACC_SYNTHETIC;
             }
-
-            if ((methodNode.access & ACC_BRIDGE) == 0 && !methodNode.name.startsWith("<")) {
-                methodNode.access |= ACC_BRIDGE;
-            }
         });
     }
 

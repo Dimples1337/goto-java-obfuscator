@@ -15,6 +15,10 @@ class InvokeProxy : Transformer("InvokeProxy") {
         val dictionary = UnicodeDictionary(2)
 
         for (method in node.methods) {
+            dictionary.addUsed(method.name)
+        }
+
+        for (method in node.methods) {
             val modifier = InstructionModifier()
 
             for (instruction in method.instructions) {

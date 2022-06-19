@@ -197,4 +197,17 @@ object ASMUtils {
     fun isSpecialMethod(node : MethodNode) : Boolean {
         return node.access.and(ACC_NATIVE) != 0 || node.access.and(ACC_ABSTRACT) != 0
     }
+
+    // 获得所处的Label
+    fun getLabel(node : AbstractInsnNode) : LabelNode? {
+        var v : AbstractInsnNode? = node
+
+        do {
+            v = v?.previous
+
+            if (v == null) return null
+
+            if (v is LabelNode) return v
+        } while (true)
+    }
 }

@@ -42,6 +42,9 @@ final class Config {
     @SerializedName("ThreadPoolSize")
     public int threadPoolSize = 5;
 
+    @SerializedName("LoadLibMode")
+    public int libMode = 0;
+
     @SerializedName("MultiThreadLoadLibraries")
     public boolean multiThreadLoadLibraries = true;
 
@@ -107,6 +110,12 @@ final class Config {
 
     @SerializedName("InvokeProxy")
     public boolean invokeProxyEnable;
+
+    @SerializedName("FlowObfuscation")
+    public boolean flowObfuscationEnable;
+
+    @SerializedName("FakeClasses")
+    public boolean fakeClassesEnable;
 
     public Config() {
 

@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 
 object Main {
-    private const val version = "5.9"
+    private const val version = "6.1"
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
@@ -30,8 +30,8 @@ object Main {
         val file = File(args[1])
 
         when (args[0].lowercase()) {
-            "handle" -> {
-                handle(file)
+            "process" -> {
+                process(file)
             }
             "build" -> {
                 build(file)
@@ -53,79 +53,84 @@ object Main {
     }
 
     private fun printHelp() {
-        println("handle <Config file name> -> 使用现有的配置进行")
+        println("process <Config file name> -> 使用现有的配置进行")
         println("build <Config file name> -> 构建一个配置")
     }
 
-    private fun handle(configFile : File) {
+    private fun process(configFile : File) {
         if (!configFile.exists()) {
             println("${configFile.absolutePath} 不存在!")
             return
         }
 
-        FileInputStream(configFile).reader().use {
-            val config = gson.fromJson(it.readText(), Config::class.java)
+        val config : Config
 
-            val obfuscator = Obfuscator(File(config.input), File(config.output))
-
-            if (config.mainClass.isNotEmpty()) {
-                obfuscator.mainClass = config.mainClass
-            }
-
-            for (path in config.libraries) {
-                val file = File(path)
-
-                if (!file.exists()) {
-                    System.err.println("WARNING: Library file: ${file.absolutePath} not exists!")
-                    continue
-                }
-
-                println("Found library ${if (file.isDirectory) "directory" else "file"}: ${file.absolutePath}")
-                obfuscator.addLibraries(file)
-            }
-
-            obfuscator.addExtractZips(config.extractZips)
-
-            obfuscator.addSkipClasses(config.skipClasses)
-            obfuscator.addExcludeClassNames(config.excludeClasses)
-
-            obfuscator.dictionaryFile = config.classRenameDictionaryFile
-
-            ClassRename.exclude.addAll(config.classRenameExclude)
-
-            obfuscator.corruptCRC = config.corruptCRC
-            obfuscator.corruptDate = config.corruptDate
-            obfuscator.classFolder = config.classFolder
-            obfuscator.duplicateResource = config.duplicateResource
-            obfuscator.extractorMode = config.extractorMode
-            obfuscator.dictionaryMode = config.classRenameDictionaryMode
-            obfuscator.useComputeMaxs = config.useComputeMaxs
-            obfuscator.multiThreadLoadLibraries = config.multiThreadLoadLibraries
-            obfuscator.preVerify = config.preVerify
-            obfuscator.classRenameRemoveMetadata = config.classRenameRemoveMetadata
-
-            obfuscator.setPackerEnable(config.packerEnable)
-            obfuscator.setConstantPackerEnable(config.constantPackerEnable)
-
-            obfuscator.threadPoolSize = config.threadPoolSize
-            obfuscator.dictionaryRepeatTimeBase  = config.dictionaryRepeatTimeBase
-
-            if (config.classRenameEnable) obfuscator.addTransformers(ClassRename())
-            if (config.stringEncryptorEnable) obfuscator.addTransformers(StringEncryptor())
-            if (config.hideCodeEnable) obfuscator.addTransformers(HideCode())
-            if (config.numberEncryptorEnable) obfuscator.addTransformers(NumberEncryptor())
-            if (config.sourceRenameEnable) obfuscator.addTransformers(SourceRename())
-            if (config.badAnnotationEnable) obfuscator.addTransformers(BadAnnotation())
-            if (config.crasherEnable) obfuscator.addTransformers(Crasher())
-            if (config.invalidSignatureEnable) obfuscator.addTransformers(InvalidSignature())
-            if (config.invokeProxyEnable) obfuscator.addTransformers(InvokeProxy())
-            if (config.variableRenameEnable) obfuscator.addTransformers(VariableRename())
-            if (config.junkCodeEnable) obfuscator.addTransformers(JunkCode())
-
-            PluginManager(obfuscator).searchPlugins()
-
-            obfuscator.start()
+        configFile.bufferedReader(StandardCharsets.UTF_8).use {
+            config = gson.fromJson(it.readText(), Config::class.java)
         }
+
+        val obfuscator = Obfuscator(File(config.input), File(config.output))
+
+        if (config.mainClass.isNotEmpty()) {
+            obfuscator.mainClass = config.mainClass
+        }
+
+        for (path in config.libraries) {
+            val file = File(path)
+
+            if (!file.exists()) {
+                System.err.println("WARNING: Library file: ${file.absolutePath} not exists!")
+                continue
+            }
+
+            println("Found library ${if (file.isDirectory) "directory" else "file"}: ${file.absolutePath}")
+            obfuscator.addLibraries(file)
+        }
+
+        obfuscator.addExtractZips(config.extractZips)
+
+        obfuscator.addSkipClasses(config.skipClasses)
+        obfuscator.addExcludeClassNames(config.excludeClasses)
+
+        obfuscator.dictionaryFile = config.classRenameDictionaryFile
+
+        ClassRename.exclude.addAll(config.classRenameExclude)
+
+        obfuscator.corruptCRC = config.corruptCRC
+        obfuscator.corruptDate = config.corruptDate
+        obfuscator.classFolder = config.classFolder
+        obfuscator.duplicateResource = config.duplicateResource
+        obfuscator.extractorMode = config.extractorMode
+        obfuscator.dictionaryMode = config.classRenameDictionaryMode
+        obfuscator.useComputeMaxs = config.useComputeMaxs
+        obfuscator.multiThreadLoadLibraries = config.multiThreadLoadLibraries
+        obfuscator.preVerify = config.preVerify
+        obfuscator.classRenameRemoveMetadata = config.classRenameRemoveMetadata
+        obfuscator.libMode = config.libMode
+
+        obfuscator.setPackerEnable(config.packerEnable)
+        obfuscator.setConstantPackerEnable(config.constantPackerEnable)
+
+        obfuscator.threadPoolSize = config.threadPoolSize
+        obfuscator.dictionaryRepeatTimeBase  = config.dictionaryRepeatTimeBase
+
+        if (config.classRenameEnable) obfuscator.addTransformers(ClassRename())
+        if (config.stringEncryptorEnable) obfuscator.addTransformers(StringEncryptor())
+        if (config.hideCodeEnable) obfuscator.addTransformers(HideCode())
+        if (config.numberEncryptorEnable) obfuscator.addTransformers(NumberEncryptor())
+        if (config.sourceRenameEnable) obfuscator.addTransformers(SourceRename())
+        if (config.badAnnotationEnable) obfuscator.addTransformers(BadAnnotation())
+        if (config.crasherEnable) obfuscator.addTransformers(Crasher())
+        if (config.invalidSignatureEnable) obfuscator.addTransformers(InvalidSignature())
+        if (config.invokeProxyEnable) obfuscator.addTransformers(InvokeProxy())
+        if (config.variableRenameEnable) obfuscator.addTransformers(VariableRename())
+        if (config.junkCodeEnable) obfuscator.addTransformers(JunkCode())
+        if (config.flowObfuscationEnable) obfuscator.addTransformers(FlowObfuscation())
+        if (config.fakeClassesEnable) obfuscator.addTransformers(FakeClasses())
+
+        PluginManager(obfuscator).searchPlugins()
+
+        obfuscator.start()
     }
 
     private fun build(configFile : File) {

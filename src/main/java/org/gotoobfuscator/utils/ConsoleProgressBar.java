@@ -10,7 +10,6 @@ import java.text.DecimalFormat;
 public final class ConsoleProgressBar {
     private final DecimalFormat formatter = new DecimalFormat("#.##%");
     private final int barLen = 10;
-    private final char showChar = '=';
 
     public void show(double value,double max,final String info) {
         if (value < 0.0 || value > max) {
@@ -29,19 +28,24 @@ public final class ConsoleProgressBar {
     }
 
     private void draw(final double rate,final String info) {
-        System.out.print("|");
+        System.out.print("[");
 
         final int len = (int) (rate * barLen);
 
         for (int i = 0; i < len; i++) {
-            System.out.print(showChar);
+            System.out.print(color("◼",32));
         }
 
         for (int i = 0; i < barLen - len; i++) {
-            System.out.print(" ");
+            System.out.print(color("◼",37));
         }
 
-        System.out.print("| " + format(rate) + " " + info);
+        System.out.print("] " + format(rate) + " " + info);
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private String color(String content, int colour) {
+        return String.format("\033[%dm%s\033[0m", colour, content);
     }
 
     private void reset() {

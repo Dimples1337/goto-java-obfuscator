@@ -120,6 +120,8 @@ class ClassRename : Transformer("ClassRename") {
             }
 
             for (method in node.methods) {
+                if (methodMapping.containsKey(methodKey(method, node))) continue
+
                 localVariablesDictionary.reset()
 
                 method.localVariables?.forEach {
@@ -154,10 +156,6 @@ class ClassRename : Transformer("ClassRename") {
 
         if (!set.contains(owner)) {
             set.add(owner)
-
-            if (methodMapping.containsKey(methodKey(methodNode, owner))) {
-                return false
-            }
 
             if (startClass.name != owner.name && tree.isLibNode) {
                 for (method in owner.methods) {
@@ -353,13 +351,14 @@ class ClassRename : Transformer("ClassRename") {
 
         print("Transforming")
 
-        val simpleRemapper = GotoRemapper()
+        @Suppress("SpellCheckingInspection")
+        val remapper = GotoRemapper()
         val newClasses = HashMap<String,ClassWrapper>()
         val newExcludeClasses = HashMap<String,ClassWrapper>()
 
         obfuscator.classes.forEach(action = {
             val newNode = ClassNode()
-            val classRemapper = ClassRemapper(newNode, simpleRemapper)
+            val classRemapper = ClassRemapper(newNode, remapper)
 
             it.value.classNode.accept(classRemapper)
 
@@ -370,7 +369,7 @@ class ClassRename : Transformer("ClassRename") {
 
         obfuscator.excludeClasses.forEach {
             val newNode = ClassNode()
-            val classRemapper = ClassRemapper(newNode, simpleRemapper)
+            val classRemapper = ClassRemapper(newNode, remapper)
 
             it.value.classNode.accept(classRemapper)
 
@@ -386,7 +385,6 @@ class ClassRename : Transformer("ClassRename") {
         obfuscator.allClasses.clear()
         obfuscator.allClasses.putAll(obfuscator.classes)
         obfuscator.allClasses.putAll(obfuscator.excludeClasses)
-        obfuscator.allClasses.putAll(obfuscator.libClasses)
 
         mapping.clear()
         fieldMapping.clear()
@@ -420,9 +418,25 @@ class ClassRename : Transformer("ClassRename") {
     }
 
     inner class GotoRemapper : SimpleRemapper(mapping) {
+        override fun mapAnnotationAttributeName(descriptor: String, name: String): String {
+            val className = descriptor.substring(1,descriptor.length - 1)
+
+            methodMapping.keys.find { it.startsWith("$className.$name") }.also {
+                if (it != null) {
+                    val s = methodMapping[it]
+
+                    if (s != null) {
+                        return s
+                    }
+                }
+            }
+
+            return name
+        }
+
         override fun mapFieldName(owner: String, name: String, descriptor : String) : String {
             return fieldMapping["$owner.$name$descriptor"].run {
-                if (this == null) { // 也许是父类字段
+                if (this == null) {
                     try {
                         val classNode = Obfuscator.Instance.getClassNode(owner)
                         val checkParentField = checkParentField(classNode, name, descriptor)
