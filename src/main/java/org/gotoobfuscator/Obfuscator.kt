@@ -1,7 +1,6 @@
 package org.gotoobfuscator
 
 import org.apache.commons.io.IOUtils
-import org.gotoobfuscator.exceptions.MissingClassException
 import org.gotoobfuscator.interfaces.ClassManager
 import org.gotoobfuscator.obj.ClassWrapper
 import org.gotoobfuscator.obj.Resource
@@ -11,7 +10,6 @@ import org.gotoobfuscator.transformer.Transformer
 import org.gotoobfuscator.libloader.DynamicLibLoader
 import org.gotoobfuscator.libloader.StaticLibLoader
 import org.gotoobfuscator.utils.RandomUtils
-import org.objectweb.asm.ClassReader
 import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.analysis.Analyzer
 import org.objectweb.asm.tree.analysis.AnalyzerException
@@ -22,7 +20,6 @@ import java.io.FileOutputStream
 import java.lang.IllegalArgumentException
 import java.nio.charset.StandardCharsets
 import java.nio.file.attribute.FileTime
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.ThreadPoolExecutor
@@ -37,7 +34,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
     val classes = HashMap<String,ClassWrapper>()
     val excludeClasses = HashMap<String,ClassWrapper>()
     val allClasses = HashMap<String,ClassWrapper>()
-    val resources = HashMap<String,Resource>()
+    val resources = ArrayList<Resource>()
 
     private val libraries = ArrayList<File>()
     private val extractZips = ArrayList<String>()
@@ -71,6 +68,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
     var threadPoolSize = 5
     var dictionaryRepeatTimeBase = 1
     var libMode = 0 // 0 DynamicLibLoader , 1 StaticLibLoader
+    var classRenamePackageName = ""
 
     init {
         if (!inputFile.exists()) {
@@ -328,9 +326,9 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
             }
         }
 
-        resources.values.forEach(
+        resources.forEach(
             action = { resource ->
-                if (resource.name.endsWith("/") && resources.values.find { it != resource && !it.name.endsWith("/") && it.name.startsWith(resource.name) } == null) {
+                if (resource.name.endsWith("/") && resources.find { it != resource && !it.name.endsWith("/") && it.name.startsWith(resource.name) } == null) {
                     return@forEach
                 }
 
@@ -359,7 +357,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
             try {
                 jos.putNextEntry(entry)
             } catch (e : Throwable) {
-                println("Writing class ${wrapper.name} error")
+                System.err.println("Writing class ${wrapper.name} error")
                 throw e
             }
 
@@ -367,7 +365,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
                 jos.write(wrapper.toByteArray(useComputeMaxs))
             } catch (e : Throwable) {
                 e.printStackTrace()
-                println("Write class ${wrapper.name} error try use original bytes")
+                System.err.println("Write class ${wrapper.name} error try use original bytes")
 
                 jos.write(wrapper.originalBytes)
             }
@@ -375,6 +373,16 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
             jos.closeEntry()
 
             putDuplicateResource(entry.name,jos)
+
+            if (classFolder) {
+                val jarEntry = JarEntry("${wrapper.name}.class/data")
+
+                handleEntry(jarEntry)
+
+                jos.putNextEntry(jarEntry)
+                jos.write(0)
+                jos.closeEntry()
+            }
         }
 
         classes.values.forEach(
@@ -393,7 +401,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
                 try {
                     jos.putNextEntry(entry)
                 } catch (e : Throwable) {
-                    println("Writing class ${it.name} error")
+                    System.err.println("Writing class ${it.name} error")
                     throw e
                 }
 
@@ -406,7 +414,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
                     )
                 } catch (e : Throwable) {
                     e.printStackTrace()
-                    println("Write class ${it.name} error try use original bytes")
+                    System.err.println("Write class ${it.name} error try use original bytes")
 
                     jos.write(it.originalBytes)
                 }
@@ -414,6 +422,16 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
                 jos.closeEntry()
 
                 putDuplicateResource(entry.name,jos)
+
+                if (classFolder) {
+                    val jarEntry = JarEntry("${it.name}.class/data")
+
+                    handleEntry(jarEntry)
+
+                    jos.putNextEntry(jarEntry)
+                    jos.write(114514)
+                    jos.closeEntry()
+                }
             }
         )
 
@@ -461,7 +479,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
                 val file = File(extractZip)
 
                 if (!file.exists()) {
-                    println("WARNING: zip not exists: ${file.absolutePath}")
+                    System.err.println("WARNING: zip not exists: ${file.absolutePath}")
                     continue
                 }
 
@@ -484,7 +502,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
                 }
             } catch (e : Throwable) {
                 e.printStackTrace()
-                println("WARNING: extract zip failed! ${e.message}")
+                System.err.println("WARNING: extract zip failed! ${e.message}")
             } finally {
                 zipFile?.close()
             }
@@ -531,7 +549,7 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
 
     private fun putResource(jarFile : JarFile,entry: JarEntry) {
         val stream = jarFile.getInputStream(entry)
-        resources[entry.name] = Resource(entry.name,IOUtils.toByteArray(stream))
+        resources.add(Resource(entry.name,IOUtils.toByteArray(stream)))
         stream.close()
     }
 

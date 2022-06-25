@@ -4,13 +4,12 @@ import com.google.gson.GsonBuilder
 import org.gotoobfuscator.plugin.PluginManager
 import org.gotoobfuscator.transformer.transformers.*
 import java.io.File
-import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
 import java.util.*
 
 object Main {
-    private const val version = "6.1"
+    private const val version = "6.3"
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
@@ -93,6 +92,7 @@ object Main {
         obfuscator.addExcludeClassNames(config.excludeClasses)
 
         obfuscator.dictionaryFile = config.classRenameDictionaryFile
+        obfuscator.classRenamePackageName = config.classRenamePackageName
 
         ClassRename.exclude.addAll(config.classRenameExclude)
 
@@ -124,6 +124,7 @@ object Main {
         if (config.invalidSignatureEnable) obfuscator.addTransformers(InvalidSignature())
         if (config.invokeProxyEnable) obfuscator.addTransformers(InvokeProxy())
         if (config.variableRenameEnable) obfuscator.addTransformers(VariableRename())
+        if (config.decompilerCrasherEnable) obfuscator.addTransformers(DecompilerCrasher())
         if (config.junkCodeEnable) obfuscator.addTransformers(JunkCode())
         if (config.flowObfuscationEnable) obfuscator.addTransformers(FlowObfuscation())
         if (config.fakeClassesEnable) obfuscator.addTransformers(FakeClasses())

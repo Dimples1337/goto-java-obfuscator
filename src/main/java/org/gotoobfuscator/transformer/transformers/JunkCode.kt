@@ -7,11 +7,12 @@ import org.gotoobfuscator.utils.ASMUtils
 import org.gotoobfuscator.utils.InstructionModifier
 import org.gotoobfuscator.utils.RandomUtils
 import org.objectweb.asm.Handle
+import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
 import java.util.concurrent.ThreadLocalRandom
 
 class JunkCode : Transformer("JunkCode") {
-    private val repeat = "${RandomUtils.randomStringByStringList(4,UnicodeDictionary.arabic)}\n".repeat(ThreadLocalRandom.current().nextInt(1000,2000))
+    private val repeat = "${RandomUtils.randomStringByStringList(4,UnicodeDictionary.arabic)}\n".repeat(ThreadLocalRandom.current().nextInt(100,200))
     private val repeatType = "[".repeat(255)
 
     private var handleMethods = 0
@@ -22,6 +23,7 @@ class JunkCode : Transformer("JunkCode") {
 
         for (method in node.methods) {
             if (ASMUtils.isSpecialMethod(method)) continue
+            if (method.name == "<init>") continue
 
             val modifier = InstructionModifier()
 
@@ -35,8 +37,6 @@ class JunkCode : Transformer("JunkCode") {
                         add(label)
                         add(ASMUtils.createNumberNode(ThreadLocalRandom.current().nextInt(0, Int.MAX_VALUE)))
                         add(JumpInsnNode(IFGE, instruction))
-
-                        add(InvokeDynamicInsnNode(" ","()V", Handle(H_INVOKESTATIC," "," ","(IJIJIJIJIJIJIJIJIJIJIJIJIJ)L;",false)))
 
                         add(InsnNode(ACONST_NULL))
                         add(TypeInsnNode(CHECKCAST,"${repeatType}L;"))

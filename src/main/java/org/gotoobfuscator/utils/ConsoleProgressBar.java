@@ -33,11 +33,11 @@ public final class ConsoleProgressBar {
         final int len = (int) (rate * barLen);
 
         for (int i = 0; i < len; i++) {
-            System.out.print(color("◼",32));
+            System.out.print(color("=",32));
         }
 
         for (int i = 0; i < barLen - len; i++) {
-            System.out.print(color("◼",37));
+            System.out.print(color("=",37));
         }
 
         System.out.print("] " + format(rate) + " " + info);

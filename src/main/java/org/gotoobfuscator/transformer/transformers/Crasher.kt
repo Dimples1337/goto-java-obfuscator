@@ -41,7 +41,7 @@ class Crasher : Transformer("Crasher") {
 
         val s = builder.toString()
 
-        obfuscator.resources[s] = Resource(s,writer.toByteArray())
+        obfuscator.resources.add(Resource(s,writer.toByteArray()))
     }
 
     private fun randomSpace() : String {

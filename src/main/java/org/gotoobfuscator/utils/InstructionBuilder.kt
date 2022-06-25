@@ -32,7 +32,7 @@ class InstructionBuilder {
     }
 
     fun invokeDynamic(name : String, desc : String, handle : Handle, vararg args : Any) {
-        list.add(InvokeDynamicInsnNode(name, desc, handle, args))
+        list.add(InvokeDynamicInsnNode(name, desc, handle, *args))
     }
 
     fun jump(opcode : Int, label : LabelNode) {
@@ -61,5 +61,23 @@ class InstructionBuilder {
 
     fun number(i : Int) {
         list.add(ASMUtils.createNumberNode(i))
+    }
+
+    fun addList(list : InsnList) {
+        this.list.add(list)
+    }
+
+    fun add(node : AbstractInsnNode) {
+        list.add(node)
+    }
+
+    fun label(l : LabelNode) {
+        list.add(l)
+    }
+
+    fun addArray(array : Array<AbstractInsnNode>) {
+        for (abstractInsnNode in array) {
+            list.add(abstractInsnNode)
+        }
     }
 }

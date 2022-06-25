@@ -3,14 +3,20 @@ package org.gotoobfuscator.transformer.transformers
 import org.gotoobfuscator.Obfuscator
 import org.gotoobfuscator.dictionary.impl.UnicodeDictionary
 import org.gotoobfuscator.transformer.Transformer
+import org.gotoobfuscator.utils.ASMUtils
 import org.gotoobfuscator.utils.InstructionModifier
 import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
+import org.objectweb.asm.tree.analysis.Analyzer
+import org.objectweb.asm.tree.analysis.BasicVerifier
+import java.lang.reflect.Modifier
 
 class InvokeProxy : Transformer("InvokeProxy") {
     private var count = 0
 
     override fun transform(node : ClassNode) {
+        if (Modifier.isInterface(node.access)) return
+
         val syntheticMethods = ArrayList<MethodNode>()
         val dictionary = UnicodeDictionary(2)
 
@@ -155,6 +161,10 @@ class InvokeProxy : Transformer("InvokeProxy") {
             }
 
             modifier.apply(method)
+        }
+
+        for (syntheticMethod in syntheticMethods) {
+            ASMUtils.computeMaxLocals(syntheticMethod)
         }
 
         node.methods.addAll(syntheticMethods)

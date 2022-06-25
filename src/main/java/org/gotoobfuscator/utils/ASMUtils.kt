@@ -1,8 +1,8 @@
 package org.gotoobfuscator.utils
 
 import org.objectweb.asm.Opcodes.*
+import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
-import java.lang.NullPointerException
 
 object ASMUtils {
     fun isString(node : AbstractInsnNode) : Boolean {
@@ -155,7 +155,7 @@ object ASMUtils {
         var methodNode : MethodNode? = getMethodNode(node, "<init>")
 
         if (methodNode == null) {
-            println("WTF?! ${node.name} doest have init method???!")
+            System.err.println("WTF?! ${node.name} doest have init method???!")
 
             methodNode = MethodNode(ACC_PUBLIC, "<init>", "()V", null, null).apply {
                 visitCode()
@@ -209,5 +209,22 @@ object ASMUtils {
 
             if (v is LabelNode) return v
         } while (true)
+    }
+
+    fun computeMaxLocals(method : MethodNode) {
+        var maxLocals = Type.getArgumentsAndReturnSizes(method.desc) shr 2
+
+        for (node in method.instructions) {
+            if (node is VarInsnNode) {
+                val local = node.`var`
+                val size = if (node.getOpcode() == LLOAD || node.getOpcode() == DLOAD || node.getOpcode() == LSTORE || node.getOpcode() == DSTORE) 2 else 1
+                maxLocals = maxLocals.coerceAtLeast(local + size)
+            } else if (node is IincInsnNode) {
+                val local = node.`var`
+                maxLocals = maxLocals.coerceAtLeast(local + 1)
+            }
+        }
+
+        method.maxLocals = maxLocals
     }
 }

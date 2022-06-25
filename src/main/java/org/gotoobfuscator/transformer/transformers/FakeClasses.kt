@@ -33,7 +33,7 @@ class FakeClasses : Transformer("FakeClasses") {
 
             classNode.accept(classWriter)
 
-            obfuscator.resources["$name.class"] = Resource("$name.class",classWriter.toByteArray())
+            obfuscator.resources.add(Resource("$name.class",classWriter.toByteArray()))
         }
     }
 }

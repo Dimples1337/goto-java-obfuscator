@@ -1,54 +1,127 @@
 package org.gotoobfuscator.transformer.transformers
 
+import org.gotoobfuscator.dictionary.impl.UnicodeDictionary
 import org.gotoobfuscator.transformer.Transformer
 import org.gotoobfuscator.utils.InstructionBuilder
 import org.gotoobfuscator.utils.InstructionModifier
-import org.gotoobfuscator.utils.RandomUtils
-import org.objectweb.asm.tree.ClassNode
-import org.objectweb.asm.tree.JumpInsnNode
+import org.objectweb.asm.tree.*
+import java.lang.reflect.Modifier
 import java.util.concurrent.ThreadLocalRandom
 
 class FlowObfuscation : Transformer("FlowObfuscation") {
     override fun transform(node : ClassNode) {
+        if (Modifier.isInterface(node.access)) return
+
+        val dictionary = UnicodeDictionary(10)
+
+        for (field in node.fields) {
+            dictionary.addUsed(field.name)
+        }
+
+        val fieldName = dictionary.get()
+        var setupField = false
+
         for (method in node.methods) {
             if (method.instructions.size() == 0) continue
 
             val modifier = InstructionModifier()
 
-            val valueIndex = ++method.maxLocals
-
-            var setupLocals = false
-
             for (instruction in method.instructions) {
-                if (instruction is JumpInsnNode) {
-                    when (instruction.opcode) {
-                        GOTO -> {
-                            modifier.replace(instruction, InstructionBuilder().apply {
-                                varInsn(ILOAD,valueIndex)
-                                jump(IFLT,instruction.label)
-                                number(ThreadLocalRandom.current().nextInt())
-                                varInsn(ISTORE,valueIndex)
-                                type(NEW,"java/lang/RuntimeException")
-                                insn(DUP)
-                                ldc(RandomUtils.randomString(ThreadLocalRandom.current().nextInt(5,11), RandomUtils.UNICODE))
-                                methodInsn(INVOKESPECIAL,"java/lang/RuntimeException","<init>","(Ljava/lang/String;)V",false);
-                                insn(ATHROW)
-                            }.list)
+                when (instruction) {
+                    is JumpInsnNode -> {
+                        when (instruction.opcode) {
+                            GOTO -> {
+                                modifier.replace(instruction, InstructionBuilder().apply {
+                                    fieldInsn(GETSTATIC, node.name, fieldName, "I")
+                                    jump(IFLT, instruction.label)
 
-                            setupLocals = true
+                                    var pop = false
+
+                                    when (ThreadLocalRandom.current().nextInt(0, 5)) {
+                                        0 -> {
+                                            number(ThreadLocalRandom.current().nextInt())
+
+                                            pop = true
+                                        }
+                                        1 -> {
+                                            ldc(ThreadLocalRandom.current().nextLong())
+                                        }
+                                        2 -> {
+                                            insn(ACONST_NULL)
+
+                                            pop = true
+                                        }
+                                        3 -> {
+                                            ldc(ThreadLocalRandom.current().nextFloat())
+
+                                            pop = true
+                                        }
+                                        4 -> {
+                                            ldc(ThreadLocalRandom.current().nextDouble())
+                                        }
+                                    }
+
+                                    if (pop) {
+                                        insn(POP)
+                                    } else {
+                                        insn(POP2)
+                                    }
+
+                                    insn(ACONST_NULL)
+                                    insn(ATHROW)
+                                }.list)
+
+                                setupField = true
+                            }
+                        }
+                    }
+                    is VarInsnNode -> {
+                        val l = LabelNode()
+
+                        when (instruction.opcode) {
+                            in ILOAD..ALOAD -> {
+                                when (instruction.opcode) {
+                                    LLOAD, DLOAD -> {
+                                        method.maxLocals += 2
+                                    }
+                                    else -> {
+                                        method.maxLocals++
+                                    }
+                                }
+
+                                val index = method.maxLocals
+
+                                modifier.append(instruction,InstructionBuilder().apply {
+                                    varInsn(instruction.opcode + 33,index)
+                                    varInsn(instruction.opcode,index)
+                                    fieldInsn(GETSTATIC, node.name, fieldName, "I")
+                                    jump(IFLT, l)
+
+                                    fieldInsn(GETSTATIC,"java/lang/System","out","Ljava/io/PrintStream;")
+                                    ldc(ThreadLocalRandom.current().nextLong())
+                                    ldc(ThreadLocalRandom.current().nextLong())
+                                    insn(LDIV)
+                                    methodInsn(INVOKEVIRTUAL,"java/io/PrintStream","println","(J)V",false)
+
+                                    insn(ACONST_NULL)
+                                    insn(ATHROW)
+                                    label(l)
+                                }.list)
+
+                                setupField = true
+                            }
                         }
                     }
                 }
             }
 
-            if (setupLocals) {
-                modifier.prepend(method.instructions.first, InstructionBuilder().apply {
-                    number(ThreadLocalRandom.current().nextInt(Int.MIN_VALUE, 0))
-                    varInsn(ISTORE, valueIndex)
-                }.list)
-            }
-
             modifier.apply(method)
+        }
+
+        if (setupField) {
+            val field = FieldNode(ACC_PRIVATE or ACC_STATIC,fieldName,"I",null,ThreadLocalRandom.current().nextInt(Int.MIN_VALUE,0))
+
+            node.fields.add(field)
         }
     }
 }

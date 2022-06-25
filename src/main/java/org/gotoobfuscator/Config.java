@@ -18,6 +18,9 @@ final class Config {
     @SerializedName("ClassRenameDictionaryFile")
     public String classRenameDictionaryFile = "";
 
+    @SerializedName("ClassRenamePackageName")
+    public String classRenamePackageName = "";
+
     @SerializedName("Libraries")
     public List<String> libraries = Collections.emptyList();
 
@@ -116,6 +119,9 @@ final class Config {
 
     @SerializedName("FakeClasses")
     public boolean fakeClassesEnable;
+
+    @SerializedName("DecompilerCrasher")
+    public boolean decompilerCrasherEnable;
 
     public Config() {
 

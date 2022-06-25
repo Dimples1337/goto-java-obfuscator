@@ -3,6 +3,7 @@ package org.gotoobfuscator.packer
 import org.apache.commons.io.IOUtils
 import org.gotoobfuscator.transformer.SpecialTransformer
 import org.gotoobfuscator.utils.ASMUtils
+import org.gotoobfuscator.utils.InstructionBuilder
 import org.gotoobfuscator.utils.InstructionModifier
 import org.objectweb.asm.Opcodes.*
 import org.objectweb.asm.tree.*
@@ -38,10 +39,7 @@ class ConstantPacker : SpecialTransformer("ConstantPacker") {
                         val string = ASMUtils.getString(insn)
 
                         modifier.replace(insn,
-                            FieldInsnNode(GETSTATIC,"org/gotoobfuscator/runtime/Const","ARRAY","[Ljava/lang/Object;"),
-                            ASMUtils.createNumberNode(index),
-                            InsnNode(AALOAD),
-                            TypeInsnNode(CHECKCAST,"java/lang/String")
+                            getFromArray("java/lang/String", emptyArray())
                         )
 
                         push(string)
@@ -50,55 +48,56 @@ class ConstantPacker : SpecialTransformer("ConstantPacker") {
                         when (insn.cst) {
                             is Int -> {
                                 modifier.replace(insn,
-                                    FieldInsnNode(GETSTATIC,"org/gotoobfuscator/runtime/Const","ARRAY","[Ljava/lang/Object;"),
-                                    ASMUtils.createNumberNode(index),
-                                    InsnNode(AALOAD),
-                                    TypeInsnNode(CHECKCAST,"java/lang/Integer"),
-                                    MethodInsnNode(INVOKEVIRTUAL,"java/lang/Integer","intValue","()I")
+                                    getFromArray("java/lang/Integer", arrayOf(MethodInsnNode(INVOKEVIRTUAL,"java/lang/Integer","intValue","()I")))
                                 )
 
                                 push(insn.cst)
                             }
                             is Long -> {
                                 modifier.replace(insn,
-                                    FieldInsnNode(GETSTATIC,"org/gotoobfuscator/runtime/Const","ARRAY","[Ljava/lang/Object;"),
-                                    ASMUtils.createNumberNode(index),
-                                    InsnNode(AALOAD),
-                                    TypeInsnNode(CHECKCAST,"java/lang/Long"),
-                                    MethodInsnNode(INVOKEVIRTUAL,"java/lang/Long","longValue","()J")
+                                    getFromArray("java/lang/Long", arrayOf(MethodInsnNode(INVOKEVIRTUAL,"java/lang/Long","longValue","()J")))
                                 )
 
                                 push(insn.cst)
                             }
                             is Double -> {
                                 modifier.replace(insn,
-                                    FieldInsnNode(GETSTATIC,"org/gotoobfuscator/runtime/Const","ARRAY","[Ljava/lang/Object;"),
-                                    ASMUtils.createNumberNode(index),
-                                    InsnNode(AALOAD),
-                                    TypeInsnNode(CHECKCAST,"java/lang/Double"),
-                                    MethodInsnNode(INVOKEVIRTUAL,"java/lang/Double","doubleValue","()D")
+                                    getFromArray("java/lang/Double", arrayOf(MethodInsnNode(INVOKEVIRTUAL,"java/lang/Double","doubleValue","()D")))
                                 )
 
                                 push(insn.cst)
                             }
                             is Float -> {
                                 modifier.replace(insn,
-                                    FieldInsnNode(GETSTATIC,"org/gotoobfuscator/runtime/Const","ARRAY","[Ljava/lang/Object;"),
-                                    ASMUtils.createNumberNode(index),
-                                    InsnNode(AALOAD),
-                                    TypeInsnNode(CHECKCAST,"java/lang/Float"),
-                                    MethodInsnNode(INVOKEVIRTUAL,"java/lang/Float","floatValue","()F")
+                                    getFromArray("java/lang/Float", arrayOf(MethodInsnNode(INVOKEVIRTUAL,"java/lang/Float","floatValue","()F")))
                                 )
 
                                 push(insn.cst)
                             }
                         }
                     }
+                    insn is IntInsnNode -> {
+                        modifier.replace(insn,
+                            getFromArray("java/lang/Integer", arrayOf(MethodInsnNode(INVOKEVIRTUAL,"java/lang/Integer","intValue","()I")))
+                        )
+
+                        push(insn.operand)
+                    }
                 }
             }
 
             modifier.apply(method)
         }
+    }
+
+    private fun getFromArray(castTo : String, others : Array<AbstractInsnNode>) : InsnList {
+        return InstructionBuilder().apply {
+            fieldInsn(GETSTATIC,"org/gotoobfuscator/runtime/Const","ARRAY","[Ljava/lang/Object;")
+            number(index)
+            insn(AALOAD)
+            type(CHECKCAST,castTo)
+            addArray(others)
+        }.list
     }
 
     private fun push(o : Any) {
@@ -138,6 +137,14 @@ class ConstantPacker : SpecialTransformer("ConstantPacker") {
                 is Int -> {
                     dos.write(INT)
                     dos.writeInt(o)
+                }
+                is Short -> {
+                    dos.write(INT)
+                    dos.writeInt(o.toInt())
+                }
+                is Byte -> {
+                    dos.write(INT)
+                    dos.writeInt(o.toInt())
                 }
             }
         }

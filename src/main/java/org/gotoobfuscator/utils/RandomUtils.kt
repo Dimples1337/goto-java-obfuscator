@@ -68,4 +68,8 @@ object RandomUtils {
     fun randomIllegalJavaName(): String {
         return ILLEGAL_JAVA_NAMES[ThreadLocalRandom.current().nextInt(0, ILLEGAL_JAVA_NAMES.size)]
     }
+
+    fun randomUnicode(length : Int) : String {
+        return randomString(length, UNICODE)
+    }
 }

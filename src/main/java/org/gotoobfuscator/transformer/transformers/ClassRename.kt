@@ -43,6 +43,9 @@ class ClassRename : Transformer("ClassRename") {
 
     private val classTreeMap = HashMap<String, ClassTree>()
 
+    private val packageName = Obfuscator.Instance.classRenamePackageName
+    private val packageNameIsEmpty = packageName.isEmpty()
+
     private fun transform() {
         val classes = ArrayList<ClassNode>()
 
@@ -259,7 +262,11 @@ class ClassRename : Transformer("ClassRename") {
         }
 
         if (!node.name.contains("$")) {
-            mapping[node.name] = dictionary.get()
+            if (packageNameIsEmpty) {
+                mapping[node.name] = dictionary.get()
+            } else {
+                mapping[node.name] = "${packageName}/${dictionary.get()}"
+            }
         } else {
             findInnerName(node).toIntOrNull().run {
                 if (this == null) {

@@ -1,10 +1,7 @@
 package org.gotoobfuscator.runtime;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.InputStream;
-import java.util.HashMap;
 
 @SuppressWarnings("unused")
 public final class Const {
@@ -44,6 +41,8 @@ public final class Const {
                         case 4:
                             cache[i] = dis.readInt();
                             break;
+                        default:
+                            throw new RuntimeException("Unknown type: " + i);
                     }
                 }
             } catch (Throwable e) {

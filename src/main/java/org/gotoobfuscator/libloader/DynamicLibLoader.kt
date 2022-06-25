@@ -36,9 +36,9 @@ class DynamicLibLoader(files : ArrayList<File>) : Closeable,ClassManager {
     }
 
     override fun getClassNode(name : String) : ClassNode {
-        val inMap = classes[name]
+        val fromMap = classes[name]
 
-        if (inMap != null) return inMap
+        if (fromMap != null) return fromMap
 
         for (jar in jars) {
             val e = jar.getJarEntry("${name}.class")

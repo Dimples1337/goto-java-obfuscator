@@ -4,6 +4,7 @@ import org.gotoobfuscator.Obfuscator
 import org.gotoobfuscator.dictionary.impl.UnicodeDictionary
 import org.gotoobfuscator.transformer.Transformer
 import org.gotoobfuscator.utils.ASMUtils
+import org.gotoobfuscator.utils.InstructionBuilder
 import org.gotoobfuscator.utils.InstructionModifier
 import org.objectweb.asm.tree.*
 import java.lang.reflect.Modifier
@@ -28,8 +29,15 @@ class StringEncryptor : Transformer("StringEncryptor") {
             return
         }
 
+        for (field in node.fields) {
+            dictionary.addUsed(field.name)
+        }
+
+        for (method in node.methods) {
+            dictionary.addUsed(method.name)
+        }
+
         val fieldName = dictionary.get()
-        //val offsetFieldName = dictionary.get()
         val decryptMethodName = dictionary.get()
 
         val offset = ThreadLocalRandom.current().nextInt()
@@ -81,26 +89,63 @@ class StringEncryptor : Transformer("StringEncryptor") {
         ASMUtils.getClinitMethodNodeOrCreateNew(node).also { staticMethod ->
             val modifier = InstructionModifier()
 
-            val staticList = InsnList().apply {
-                add(ASMUtils.createNumberNode(data.size))
-                add(TypeInsnNode(ANEWARRAY,"java/lang/String"))
-                add(FieldInsnNode(PUTSTATIC,node.name,fieldName,"[Ljava/lang/String;"))
+            val staticList = InstructionBuilder().apply {
+                val startLabel = LabelNode()
+                val foreachStartLabel = LabelNode()
+                val endLabel = LabelNode()
 
-                for (d in data) {
-                    add(LdcInsnNode(d.encryptedString))
-                    add(ASMUtils.createNumberNode(d.pos))
-                    add(MethodInsnNode(INVOKESTATIC,node.name,decryptMethodName,"(Ljava/lang/String;I)V",false))
+                label(startLabel)
+                number(data.size)
+                type(ANEWARRAY, "java/lang/String")
+                fieldInsn(PUTSTATIC, node.name, fieldName, "[Ljava/lang/String;")
+
+                val stringsIndex = ++staticMethod.maxLocals
+                val iIndex = ++staticMethod.maxLocals
+
+                number(data.size)
+                type(ANEWARRAY,"java/lang/String")
+                insn(DUP)
+
+                val lengthList = ArrayList<Int>(data.size)
+
+                data.forEachIndexed { index, it ->
+                    lengthList.add(it.encryptedString.length)
+
+                    number(index)
+                    ldc(it.encryptedString)
+                    insn(AASTORE)
+
+                    if (index != data.size - 1) {
+                        insn(DUP)
+                    }
                 }
 
+                varInsn(ASTORE, stringsIndex)
+
+                insn(ICONST_0)
+                varInsn(ISTORE, iIndex)
+                label(foreachStartLabel)
+                varInsn(ILOAD, iIndex)
+                number(lengthList.size)
+                jump(IF_ICMPGE, endLabel)
+                varInsn(ALOAD, stringsIndex)
+                varInsn(ILOAD, iIndex)
+                insn(AALOAD)
+                varInsn(ILOAD, iIndex)
+                methodInsn(INVOKESTATIC, node.name, decryptMethodName, "(Ljava/lang/String;I)V", false)
+                iinc(iIndex, 1)
+                jump(GOTO, foreachStartLabel)
+
+                label(endLabel)
                 for (data in constFieldData) {
-                    add(FieldInsnNode(GETSTATIC,node.name,fieldName,"[Ljava/lang/String;"))
-                    add(ASMUtils.createNumberNode(data.pos))
-                    add(InsnNode(AALOAD))
-                    add(FieldInsnNode(PUTSTATIC,node.name,data.fieldNode.name,data.fieldNode.desc))
+                    fieldInsn(GETSTATIC,node.name,fieldName,"[Ljava/lang/String;")
+                    number(data.pos)
+                    insn(AALOAD)
+                    fieldInsn(PUTSTATIC,node.name,data.fieldNode.name,data.fieldNode.desc)
                 }
-            }
+            }.list
 
-            modifier.prepend(staticMethod.instructions[0],staticList)
+            modifier.prepend(staticMethod.instructions.first,staticList)
             modifier.apply(staticMethod)
         }
 
@@ -186,6 +231,8 @@ class StringEncryptor : Transformer("StringEncryptor") {
 
             decryptMethod.visitInsn(RETURN)
             decryptMethod.visitEnd()
+
+            ASMUtils.computeMaxLocals(decryptMethod)
 
             node.methods.add(decryptMethod)
         }
