@@ -10,6 +10,10 @@ class NumberDictionary : IDictionary {
         return get(index++)
     }
 
+    override fun reset() {
+        index = 0
+    }
+
     fun get(index: Int): String {
         val baseIndex = index / 10
         val offset = index % 10

@@ -77,11 +77,17 @@ class ConstantPacker : SpecialTransformer("ConstantPacker") {
                         }
                     }
                     insn is IntInsnNode -> {
-                        modifier.replace(insn,
-                            getFromArray("java/lang/Integer", arrayOf(MethodInsnNode(INVOKEVIRTUAL,"java/lang/Integer","intValue","()I")))
-                        )
+                        if (insn.opcode != NEWARRAY) {
+                            modifier.replace(
+                                insn,
+                                getFromArray(
+                                    "java/lang/Integer",
+                                    arrayOf(MethodInsnNode(INVOKEVIRTUAL, "java/lang/Integer", "intValue", "()I"))
+                                )
+                            )
 
-                        push(insn.operand)
+                            push(insn.operand)
+                        }
                     }
                 }
             }

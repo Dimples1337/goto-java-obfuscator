@@ -56,14 +56,14 @@ class ClassRename : Transformer("ClassRename") {
         }
 
         val removeMetadata = Obfuscator.Instance.classRenameRemoveMetadata
-        val classesSize = classes.size.toDouble()
-        var consoleProgressBar = ConsoleProgressBar()
+        val consoleProgressBar = ConsoleProgressBar(classes.size.toDouble())
+
         var ticks = 1.0
 
         print("Remapping classes")
 
         MainForEach@ for (node in classes) {
-            consoleProgressBar.show(ticks,classesSize,node.name)
+            consoleProgressBar.update(ticks,node.name)
             ticks++
 
             if (isExclude(node)) {
@@ -83,7 +83,7 @@ class ClassRename : Transformer("ClassRename") {
             remap(node)
         }
 
-        consoleProgressBar = ConsoleProgressBar()
+        consoleProgressBar.reset()
         ticks = 1.0
 
         print("Building tree")
@@ -95,11 +95,11 @@ class ClassRename : Transformer("ClassRename") {
                 print("\r构建Class树状图时找不到类: ${e.missingClassName}")
             }
 
-            consoleProgressBar.show(ticks,classesSize,node.name)
+            consoleProgressBar.update(ticks,node.name)
             ticks++
         }
 
-        consoleProgressBar = ConsoleProgressBar()
+        consoleProgressBar.reset()
         ticks = 1.0
 
         print("Remapping field and method")
@@ -113,7 +113,7 @@ class ClassRename : Transformer("ClassRename") {
         }
 
         MainForEach@ for (node in classes) {
-            consoleProgressBar.show(ticks,classesSize,node.name)
+            consoleProgressBar.update(ticks,node.name)
             ticks++
 
             if (isExclude(node)) continue@MainForEach

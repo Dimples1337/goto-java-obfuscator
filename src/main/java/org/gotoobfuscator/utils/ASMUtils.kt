@@ -52,34 +52,12 @@ object ASMUtils {
     }
 
     fun isNumber(node : AbstractInsnNode) : Boolean {
-        when (node) {
-            is LdcInsnNode -> {
-                val cst = node.cst
-                return cst is Double || cst is Float || cst is Long || cst is Int
-            }
-            is IntInsnNode -> {
-                if (node.opcode == SIPUSH || node.opcode == BIPUSH) {
-                    return true
-                }
-            }
-            else -> {
-                when (node.opcode) {
-                    ICONST_M1 -> return true
-                    ICONST_0 -> return true
-                    ICONST_1 -> return true
-                    ICONST_2 -> return true
-                    ICONST_3 -> return true
-                    ICONST_4 -> return true
-                    ICONST_5 -> return true
-                    LCONST_0 -> return true
-                    LCONST_1 -> return true
-                    FCONST_0 -> return true
-                    FCONST_1 -> return true
-                    FCONST_2 -> return true
-                    DCONST_0 -> return true
-                    DCONST_1 -> return true
-                }
-            }
+        if (node.opcode in ICONST_M1..SIPUSH) {
+            return true
+        }
+
+        if (node is LdcInsnNode) {
+            if (node.cst is Number) return true
         }
 
         return false
@@ -209,6 +187,21 @@ object ASMUtils {
 
             if (v is LabelNode) return v
         } while (true)
+    }
+
+    fun getLabels(node : MethodNode) : ArrayList<LabelNode> {
+        if (node.instructions.size() == 0) return ArrayList()
+
+        val list = ArrayList<LabelNode>()
+        val last = node.instructions[node.instructions.size() - 1]
+
+        for (instruction in node.instructions) {
+            if (instruction is LabelNode && instruction != last) {
+                list.add(instruction)
+            }
+        }
+
+        return list
     }
 
     fun computeMaxLocals(method : MethodNode) {

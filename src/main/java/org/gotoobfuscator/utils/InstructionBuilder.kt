@@ -47,7 +47,7 @@ class InstructionBuilder {
         list.add(IincInsnNode(index, increment))
     }
 
-    fun tableSwitch(min : Int, max : Int, defaultLabel : LabelNode, vararg labels : LabelNode) {
+    fun tableSwitch(min : Int, max : Int, defaultLabel : LabelNode, labels : Array<LabelNode>) {
         list.add(TableSwitchInsnNode(min, max, defaultLabel, *labels))
     }
 

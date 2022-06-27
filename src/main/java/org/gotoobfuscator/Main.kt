@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 
 object Main {
-    private const val version = "6.3"
+    private const val version = "6.4"
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
@@ -116,10 +116,8 @@ object Main {
 
         if (config.classRenameEnable) obfuscator.addTransformers(ClassRename())
         if (config.stringEncryptorEnable) obfuscator.addTransformers(StringEncryptor())
-        if (config.hideCodeEnable) obfuscator.addTransformers(HideCode())
         if (config.numberEncryptorEnable) obfuscator.addTransformers(NumberEncryptor())
         if (config.sourceRenameEnable) obfuscator.addTransformers(SourceRename())
-        if (config.badAnnotationEnable) obfuscator.addTransformers(BadAnnotation())
         if (config.crasherEnable) obfuscator.addTransformers(Crasher())
         if (config.invalidSignatureEnable) obfuscator.addTransformers(InvalidSignature())
         if (config.invokeProxyEnable) obfuscator.addTransformers(InvokeProxy())
@@ -127,6 +125,8 @@ object Main {
         if (config.decompilerCrasherEnable) obfuscator.addTransformers(DecompilerCrasher())
         if (config.junkCodeEnable) obfuscator.addTransformers(JunkCode())
         if (config.flowObfuscationEnable) obfuscator.addTransformers(FlowObfuscation())
+        if (config.badAnnotationEnable) obfuscator.addTransformers(BadAnnotation())
+        if (config.hideCodeEnable) obfuscator.addTransformers(HideCode())
         if (config.fakeClassesEnable) obfuscator.addTransformers(FakeClasses())
 
         PluginManager(obfuscator).searchPlugins()

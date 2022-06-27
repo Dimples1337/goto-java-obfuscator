@@ -6,6 +6,8 @@ import org.gotoobfuscator.dictionary.impl.*;
 public interface IDictionary {
     String get();
 
+    void reset();
+
     static IDictionary newDictionary() {
         final int mode = Obfuscator.Instance.getDictionaryMode();
 

@@ -94,11 +94,9 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
         return run {
             when {
                 classWrapper != null -> {
-                    val node = classWrapper.classNode
-
-                    nodeMap[name] = node
-
-                    node
+                    classWrapper.classNode.also {
+                        nodeMap[name] = it
+                    }
                 }
                 else -> {
                     libLoader!!.getClassNode(name).also {

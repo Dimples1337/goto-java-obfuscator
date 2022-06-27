@@ -2,6 +2,7 @@ package org.gotoobfuscator.transformer.transformers
 
 import org.gotoobfuscator.dictionary.impl.UnicodeDictionary
 import org.gotoobfuscator.transformer.Transformer
+import org.gotoobfuscator.utils.ASMUtils
 import org.gotoobfuscator.utils.InstructionBuilder
 import org.gotoobfuscator.utils.InstructionModifier
 import org.objectweb.asm.tree.*
@@ -76,10 +77,10 @@ class FlowObfuscation : Transformer("FlowObfuscation") {
                         }
                     }
                     is VarInsnNode -> {
-                        val l = LabelNode()
-
                         when (instruction.opcode) {
                             in ILOAD..ALOAD -> {
+                                val l = LabelNode()
+
                                 when (instruction.opcode) {
                                     LLOAD, DLOAD -> {
                                         method.maxLocals += 2
@@ -90,6 +91,7 @@ class FlowObfuscation : Transformer("FlowObfuscation") {
                                 }
 
                                 val index = method.maxLocals
+                                val indexAnd = (method.maxLocals + 2).also { method.maxLocals = it }
 
                                 modifier.append(instruction,InstructionBuilder().apply {
                                     varInsn(instruction.opcode + 33,index)
@@ -99,8 +101,6 @@ class FlowObfuscation : Transformer("FlowObfuscation") {
 
                                     fieldInsn(GETSTATIC,"java/lang/System","out","Ljava/io/PrintStream;")
                                     ldc(ThreadLocalRandom.current().nextLong())
-                                    ldc(ThreadLocalRandom.current().nextLong())
-                                    insn(LDIV)
                                     methodInsn(INVOKEVIRTUAL,"java/io/PrintStream","println","(J)V",false)
 
                                     insn(ACONST_NULL)
@@ -109,6 +109,17 @@ class FlowObfuscation : Transformer("FlowObfuscation") {
                                 }.list)
 
                                 setupField = true
+                            }
+                            in ISTORE..ASTORE -> {
+                                modifier.append(instruction, InstructionBuilder().apply {
+                                    varInsn(instruction.opcode - 33,instruction.`var`)
+
+                                    if (instruction.opcode == DSTORE || instruction.opcode == LSTORE) {
+                                        insn(POP2)
+                                    } else {
+                                        insn(POP)
+                                    }
+                                }.list)
                             }
                         }
                     }

@@ -1,7 +1,6 @@
 package org.gotoobfuscator.dictionary.impl
 
 import org.gotoobfuscator.Obfuscator
-import org.gotoobfuscator.dictionary.IDictionary
 import org.gotoobfuscator.dictionary.ListDictionary
 import java.io.FileInputStream
 import java.nio.charset.StandardCharsets

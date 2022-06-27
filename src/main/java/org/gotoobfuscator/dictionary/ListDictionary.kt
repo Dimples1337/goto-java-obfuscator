@@ -33,7 +33,7 @@ abstract class ListDictionary(private val baseRepeatTime : Int) : IDictionary {
         return s
     }
 
-    fun reset() {
+    override fun reset() {
         used.clear()
     }
 

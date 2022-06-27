@@ -9,29 +9,35 @@ import org.gotoobfuscator.utils.InstructionModifier
 import org.gotoobfuscator.utils.MethodDuplicator
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Handle
+import org.objectweb.asm.Type
 import org.objectweb.asm.tree.*
 import java.lang.reflect.Modifier
+import java.util.*
 
 // 未完成
 class InvokeDynamicProxy : Transformer("InvokeDynamicProxy") {
-    private val desc = InvokeDynamicBootstrapMethod.DESC
+    private val bootstrapClassName : String
+    private val staticMethodName : String
+    private val virtualMethodName : String
+    private val staticHandle : Handle
+    private val virtualHandle : Handle
+
+    init {
+        val dictionary = UnicodeDictionary(1)
+
+        bootstrapClassName = dictionary.get()
+        staticMethodName = dictionary.get()
+        virtualMethodName = dictionary.get()
+
+        staticHandle = Handle(H_INVOKESTATIC, bootstrapClassName, staticMethodName, InvokeDynamicBootstrapMethod.STATIC_DESC, false)
+        virtualHandle = Handle(H_INVOKESTATIC, bootstrapClassName, virtualMethodName, InvokeDynamicBootstrapMethod.VIRTUAL_DESC, false)
+    }
 
     @Suppress("DuplicatedCode")
     override fun transform(node: ClassNode) {
         if (Modifier.isInterface(node.access)) return
 
-        val dictionary = UnicodeDictionary(1)
-
         for (method in node.methods) {
-            dictionary.addUsed(method.name)
-        }
-
-        val methodName = dictionary.get()
-        var setup = false
-
-        for (method in node.methods) {
-            if (method.name == "<clinit>" || method.name == "<init>") continue
-
             val modifier = InstructionModifier()
 
             for (instruction in method.instructions) {
@@ -44,71 +50,10 @@ class InvokeDynamicProxy : Transformer("InvokeDynamicProxy") {
                                     InvokeDynamicInsnNode(
                                         instruction.name,
                                         instruction.desc,
-                                        Handle(H_INVOKESTATIC, node.name, methodName, desc, false),
-
-                                        instruction.owner.replace("/","."),
-                                        "",
-                                        0
+                                        staticHandle,
+                                        Type.getType(formatMethodDesc(instruction.owner))
                                     )
                                 )
-
-                                setup = true
-                            }
-                            INVOKEVIRTUAL -> {
-                                if (!instruction.owner.startsWith("[")) {
-                                    modifier.replace(
-                                        instruction,
-                                        InvokeDynamicInsnNode(
-                                            instruction.name,
-                                            "(L${instruction.owner};${instruction.desc.substring(1)}",
-                                            Handle(H_INVOKESTATIC, node.name, methodName, desc, false),
-
-                                            instruction.owner.replace("/", "."),
-                                            "",
-                                            1
-                                        )
-                                    )
-
-                                    setup = true
-                                }
-                            }
-                        }
-                    }
-                    is FieldInsnNode -> {
-                        when (instruction.opcode) {
-                            GETSTATIC -> {
-                                modifier.replace(
-                                    instruction,
-                                    InvokeDynamicInsnNode(
-                                        instruction.name,
-                                        "()${instruction.desc}",
-                                        Handle(H_INVOKESTATIC, node.name, methodName, desc, false),
-
-                                        instruction.owner.replace("/", "."),
-                                        formatFieldDesc(instruction.desc),
-                                        6
-                                    )
-                                    )
-
-                                    setup = true
-                            }
-                            PUTSTATIC -> {
-                                if (!instruction.desc.startsWith("[")) {
-                                    modifier.replace(
-                                        instruction,
-                                        InvokeDynamicInsnNode(
-                                            instruction.name,
-                                            "(${instruction.desc})V",
-                                            Handle(H_INVOKESTATIC, node.name, methodName, desc, false),
-
-                                            instruction.owner.replace("/", "."),
-                                            formatFieldDesc(instruction.desc),
-                                            7
-                                        )
-                                    )
-
-                                    setup = true
-                                }
                             }
                         }
                     }
@@ -117,9 +62,27 @@ class InvokeDynamicProxy : Transformer("InvokeDynamicProxy") {
 
             modifier.apply(method)
         }
+    }
 
-        if (setup) {
-            node.methods.add(MethodDuplicator.copyMethod(InvokeDynamicBootstrapMethod::class.java,"bootstrap",desc,methodName))
+    override fun finish(obfuscator: Obfuscator) {
+        val node = ClassNode()
+
+        node.visit(V1_8,ACC_PUBLIC,bootstrapClassName,null,"java/lang/Object",emptyArray())
+
+        node.methods.add(MethodDuplicator.copyMethod(InvokeDynamicBootstrapMethod::class.java,"modeStatic",InvokeDynamicBootstrapMethod.STATIC_DESC,staticMethodName))
+
+        val classWriter = ClassWriter(ClassWriter.COMPUTE_FRAMES)
+
+        node.accept(classWriter)
+
+        obfuscator.resources.add(Resource("$bootstrapClassName.class",classWriter.toByteArray()))
+    }
+
+    private fun formatMethodDesc(input : String) : String {
+        return if (input[0] == '[') {
+            input
+        } else {
+            "L$input;"
         }
     }
 

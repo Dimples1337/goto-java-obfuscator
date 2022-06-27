@@ -10,6 +10,10 @@ class AlphaDictionary : IDictionary {
         return get(index++)
     }
 
+    override fun reset() {
+        index = 0
+    }
+
     fun get(index: Int): String {
         val baseIndex = index / 26
         val offset = index % 26
