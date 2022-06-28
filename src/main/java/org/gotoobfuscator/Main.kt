@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 
 object Main {
-    private const val version = "6.4"
+    private const val version = "6.5"
 
     private val gson = GsonBuilder().setPrettyPrinting().create()
 
@@ -91,19 +91,20 @@ object Main {
         obfuscator.addSkipClasses(config.skipClasses)
         obfuscator.addExcludeClassNames(config.excludeClasses)
 
-        obfuscator.dictionaryFile = config.classRenameDictionaryFile
-        obfuscator.classRenamePackageName = config.classRenamePackageName
+        obfuscator.dictionaryFile = config.dictionaryOptions.customFile
 
-        ClassRename.exclude.addAll(config.classRenameExclude)
+        ClassRename.packageName = config.classRenameOptions.packageName
+        ClassRename.prefix = config.classRenameOptions.prefix
+        ClassRename.exclude.addAll(config.classRenameOptions.exclude)
 
         obfuscator.corruptCRC = config.corruptCRC
         obfuscator.corruptDate = config.corruptDate
         obfuscator.classFolder = config.classFolder
         obfuscator.duplicateResource = config.duplicateResource
         obfuscator.extractorMode = config.extractorMode
-        obfuscator.dictionaryMode = config.classRenameDictionaryMode
+        obfuscator.dictionaryMode = config.dictionaryOptions.mode
         obfuscator.useComputeMaxs = config.useComputeMaxs
-        obfuscator.multiThreadLoadLibraries = config.multiThreadLoadLibraries
+        obfuscator.multiThreadLoadLibraries = config.staticLibraryLoaderOptions.multiThreadLoadLibraries
         obfuscator.preVerify = config.preVerify
         obfuscator.classRenameRemoveMetadata = config.classRenameRemoveMetadata
         obfuscator.libMode = config.libMode
@@ -111,10 +112,10 @@ object Main {
         obfuscator.setPackerEnable(config.packerEnable)
         obfuscator.setConstantPackerEnable(config.constantPackerEnable)
 
-        obfuscator.threadPoolSize = config.threadPoolSize
-        obfuscator.dictionaryRepeatTimeBase  = config.dictionaryRepeatTimeBase
+        obfuscator.threadPoolSize = config.staticLibraryLoaderOptions.threadPoolSize
+        obfuscator.dictionaryRepeatTimeBase  = config.dictionaryOptions.repeatTimeBase
 
-        if (config.classRenameEnable) obfuscator.addTransformers(ClassRename())
+        if (config.classRenameOptions.enable) obfuscator.addTransformers(ClassRename())
         if (config.stringEncryptorEnable) obfuscator.addTransformers(StringEncryptor())
         if (config.numberEncryptorEnable) obfuscator.addTransformers(NumberEncryptor())
         if (config.sourceRenameEnable) obfuscator.addTransformers(SourceRename())

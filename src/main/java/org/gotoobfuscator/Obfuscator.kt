@@ -68,7 +68,6 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
     var threadPoolSize = 5
     var dictionaryRepeatTimeBase = 1
     var libMode = 0 // 0 DynamicLibLoader , 1 StaticLibLoader
-    var classRenamePackageName = ""
 
     init {
         if (!inputFile.exists()) {
@@ -168,10 +167,6 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
         }
 
         writeOutput()
-
-        if (packer.isEnable) {
-            packer.writeMapping()
-        }
 
         if (libLoader is DynamicLibLoader) {
             IOUtils.closeQuietly(libLoader as DynamicLibLoader)
@@ -559,6 +554,10 @@ class Obfuscator(private val inputFile : File,private val outputFile : File) : C
 
     fun addLibraries(vararg files : File) {
         libraries.addAll(files)
+    }
+
+    fun addTransformer(transformer : Transformer) {
+        this.transformers.add(transformer)
     }
 
     fun addTransformers(vararg transformers : Transformer) {

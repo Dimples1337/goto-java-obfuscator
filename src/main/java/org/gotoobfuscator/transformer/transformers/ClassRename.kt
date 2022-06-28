@@ -28,6 +28,9 @@ class ClassRename : Transformer("ClassRename") {
     companion object {
         @JvmStatic
         val exclude = ArrayList<String>()
+
+        lateinit var packageName : String
+        lateinit var prefix : String
     }
 
     private val baseMethods = arrayOf("hashCode()I","equals(Ljava/lang/Object;)Z","clone()Ljava/lang/Object;","toString()Ljava/lang/String;","finalize()V")
@@ -42,9 +45,6 @@ class ClassRename : Transformer("ClassRename") {
     private val methodDictionary = IDictionary.newDictionary()
 
     private val classTreeMap = HashMap<String, ClassTree>()
-
-    private val packageName = Obfuscator.Instance.classRenamePackageName
-    private val packageNameIsEmpty = packageName.isEmpty()
 
     private fun transform() {
         val classes = ArrayList<ClassNode>()
@@ -123,14 +123,14 @@ class ClassRename : Transformer("ClassRename") {
             }
 
             for (method in node.methods) {
-                if (methodMapping.containsKey(methodKey(method, node))) continue
-
                 localVariablesDictionary.reset()
 
                 method.localVariables?.forEach {
                     if (it.name != "this")
                         it.name = localVariablesDictionary.get()
                 }
+
+                if (methodMapping.containsKey(methodKey(method, node))) continue
 
                 if (invalidMethodName(method.name,method.desc))
                     continue
@@ -262,11 +262,19 @@ class ClassRename : Transformer("ClassRename") {
         }
 
         if (!node.name.contains("$")) {
-            if (packageNameIsEmpty) {
-                mapping[node.name] = dictionary.get()
-            } else {
-                mapping[node.name] = "${packageName}/${dictionary.get()}"
+            val nameBuilder = StringBuilder()
+
+            if (packageName.isNotEmpty()) {
+                nameBuilder.append(packageName).append('/')
             }
+
+            if (prefix.isNotEmpty()) {
+                nameBuilder.append(prefix)
+            }
+
+            nameBuilder.append(dictionary.get())
+
+            mapping[node.name] = nameBuilder.toString()
         } else {
             findInnerName(node).toIntOrNull().run {
                 if (this == null) {

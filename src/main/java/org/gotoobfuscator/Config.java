@@ -1,6 +1,7 @@
 package org.gotoobfuscator;
 
 import com.google.gson.annotations.SerializedName;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import java.util.Collections;
 import java.util.List;
@@ -15,12 +16,6 @@ final class Config {
     @SerializedName("MainClass")
     public String mainClass = "";
 
-    @SerializedName("ClassRenameDictionaryFile")
-    public String classRenameDictionaryFile = "";
-
-    @SerializedName("ClassRenamePackageName")
-    public String classRenamePackageName = "";
-
     @SerializedName("Libraries")
     public List<String> libraries = Collections.emptyList();
 
@@ -33,23 +28,14 @@ final class Config {
     @SerializedName("ExcludeClasses")
     public List<String> excludeClasses = Collections.emptyList();
 
-    @SerializedName("ClassRenameExclude")
-    public List<String> classRenameExclude = Collections.emptyList();
+    @SerializedName("DictionaryOptions")
+    public DictionaryOptions dictionaryOptions = new DictionaryOptions();
 
-    @SerializedName("ClassRenameDictionaryMode")
-    public int classRenameDictionaryMode = 0;
+    @SerializedName("StaticLibraryLoaderOptions")
+    public StaticLibraryLoaderOptions staticLibraryLoaderOptions = new StaticLibraryLoaderOptions();
 
-    @SerializedName("DictionaryRepeatTimeBase")
-    public int dictionaryRepeatTimeBase = 1;
-
-    @SerializedName("ThreadPoolSize")
-    public int threadPoolSize = 5;
-
-    @SerializedName("LoadLibMode")
+    @SerializedName("LoadLibraryMode")
     public int libMode = 0;
-
-    @SerializedName("MultiThreadLoadLibraries")
-    public boolean multiThreadLoadLibraries = true;
 
     @SerializedName("PreVerify")
     public boolean preVerify = true;
@@ -82,7 +68,7 @@ final class Config {
     public boolean useComputeMaxs;
 
     @SerializedName("ClassRename")
-    public boolean classRenameEnable;
+    public ClassRenameOptions classRenameOptions = new ClassRenameOptions();
 
     @SerializedName("StringEncryptor")
     public boolean stringEncryptorEnable;
@@ -125,5 +111,33 @@ final class Config {
 
     public Config() {
 
+    }
+
+    public static class StaticLibraryLoaderOptions {
+        @SerializedName("ThreadPoolSize")
+        public int threadPoolSize = 5;
+
+        @SerializedName("MultiThreadLoadLibraries")
+        public boolean multiThreadLoadLibraries = true;
+    }
+
+    public static class DictionaryOptions {
+        @SerializedName("CustomFile")
+        public String customFile = "";
+        @SerializedName("Mode")
+        public int mode = 0;
+        @SerializedName("RepeatTimeBase")
+        public int repeatTimeBase = 1;
+    }
+
+    public static class ClassRenameOptions {
+        @SerializedName("Enable")
+        public boolean enable = false;
+        @SerializedName("PackageName")
+        public String packageName = "";
+        @SerializedName("Prefix")
+        public String prefix = "";
+        @SerializedName("Exclude")
+        public List<String> exclude = Collections.emptyList();
     }
 }

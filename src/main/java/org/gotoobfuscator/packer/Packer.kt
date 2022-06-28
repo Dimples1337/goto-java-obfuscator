@@ -25,7 +25,6 @@ import kotlin.math.abs
 import kotlin.math.max
 
 class Packer : SpecialTransformer("Packer") {
-    private val mapping = HashMap<String,String>()
     private val key = RandomUtils.randomString(100,RandomUtils.UNICODE).encodeToByteArray()
 
     fun setupMain(mainClass : String,jos : JarOutputStream,instance : Obfuscator) {
@@ -68,20 +67,10 @@ class Packer : SpecialTransformer("Packer") {
     fun handleEntry(wrapper : ClassWrapper) : JarEntry {
         val encrypt = GotoMain.name(wrapper.classNode.name.toCharArray(),key.size)
 
-        mapping[wrapper.classNode.name] = encrypt
-
         return JarEntry(encrypt)
     }
 
     fun handleBytes(b : ByteArray) : ByteArray {
         return EncodeUtils.desEncode(b, key)
-    }
-
-    fun writeMapping() {
-        FileOutputStream("PackerMapping.txt").use { fos ->
-            mapping.forEach(action = {
-                fos.write("${it.key} -> ${it.value}${System.lineSeparator()}".toByteArray(StandardCharsets.UTF_8))
-            })
-        }
     }
 }

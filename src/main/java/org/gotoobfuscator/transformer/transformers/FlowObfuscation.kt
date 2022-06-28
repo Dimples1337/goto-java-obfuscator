@@ -91,7 +91,6 @@ class FlowObfuscation : Transformer("FlowObfuscation") {
                                 }
 
                                 val index = method.maxLocals
-                                val indexAnd = (method.maxLocals + 2).also { method.maxLocals = it }
 
                                 modifier.append(instruction,InstructionBuilder().apply {
                                     varInsn(instruction.opcode + 33,index)
